@@ -1,31 +1,74 @@
 # CatScreeningML
 
 ## Overview
-CatScreeningMLは、Create MLを用いて猫の画像を特定の基準に基づいて、判別する機械学習モデルの作成するためのプロジェクトです。
+CatScreeningMLは、Create MLフレームワークを使用して「怖い猫」か「怖くない猫」かを分類する画像スクリーニングモデル (`ScaryCatScreener.mlmodel`) をトレーニングするために設計されたSwift Playgroundプロジェクトです
 
-- 訓練特化のプロジェクトです (Playground 形式)
-- 生成されたモデルは手動でエクスポートします
-- 推論ロジックは含まず、モデル作成に特化します
+**前提:** このPlaygroundに入力される画像は、既に猫の画像のみにフィルタリングされていることを前提としています
+
+- 目的: 1つのCore MLモデル (`ScaryCatScreener.mlmodel`) をトレーニングします
+- 環境: Swift Playground
+- フレームワーク: Create ML（Swiftコード経由でプログラム的に使用）
+- 出力: `ScaryCatScreener.mlmodel`
+- 注意: このプロジェクトはトレーニング*のみ*に焦点を当てていますモデルの推論/使用や、入力画像を猫のみにフィルタリングする前処理は、他のプロジェクトやライブラリで処理されます
+
+### 主な特徴
+- **Playgroundで完結:** 全プロセスはPlayground内で完結しており、学習からモデル出力まで可能です
+- **リソースパス:** `Bundle.main.resourceURL` を活用することで、Playground上でも安定的にリソースパスを解決できるように工夫しています
+- **デバッグ:** Xcodeコンソールに学習の進行状況やモデルのメタ情報を出力することで、トレーニングの透明性を高め、トラブル時のデバッグを容易にしています
+
+## 設計方針の変遷（「Cat or Not Cat」モデルの生成をやめた）
+
+当初は、「猫か猫以外か」を判定するモデル (`CatScreener`) と、「怖い猫か怖くない猫か」を判定するモデル (`ScaryCatScreener`) の二段階でスクリーニングを行う構成を検討していました
+
+しかし、「猫か猫以外か」を判定するモデルのトレーニングには、以下のような課題があることがわかりました
+
+- **無限の「猫以外」:** モデルが現実世界のあらゆる「猫ではない」画像を正しく認識するためには、理論上、無限に近い種類の「猫以外」の画像（犬、他の動物、物、風景、イラスト、ぬいぐるみ等々）をデータセットに含める必要があります
+- **データ収集コスト:** このような網羅的で多様な「猫以外」の画像データを収集・管理するコストは非常に高くなります
+- **性能限界:** 十分な「猫以外」データを集めたとしても、未知の「猫ではない何か」に対して誤判定を起こす可能性が常に残り、現実の運用で期待通りの性能を出すのが困難になりがちです（例：「馬は大丈夫だがラクダは猫と間違える」）
+
+これらの理由から、より現実的で実用的なアプローチとして、「このMLモデルに入力される時点で、画像は既に猫であることがAPIなどの仕組みによって保証されている」という前提に方針を変更しましたこれにより、プロジェクトは「与えられた猫の画像を『怖い』か『怖くない』かに分類する」という、より達成可能な目標に集中できます
 
 ## Directory Structure
 ```
 CatScreeningML.playground/
-    ├── Data/             // 訓練用データセット (cat / not-cat)
-    ├── TrainModel.swift  // Create MLを用いた訓練スクリプト
-    └── README.md         // このファイル
+├── Contents.swift
+├── Sources/
+│   ├── ImageScreeningTrainer/
+│   │   ├── Core/
+│   │   │   └── BaseScreenerTrainer.swift
+│   │   └── ScaryCatScreenerTrainer.swift
+│   └── TrainingCoordinator.swift
+├── Resources/
+│   └── ScaryCatScreenerData/
+│       ├── Scary/           
+│       └── NonScary/        
+├── OutputModels/
+│   └── ScaryCatScreener.mlmodel
+└── README.md
 ```
+*注意: `OutputModels/` ディレクトリは、スクリプト実行時にPlaygroundのルートに自動的に作成されます
 
 ## Workflow
-1. `Data/` 配下にデータセットを編集
-2. Playground上で `TrainModel.swift` を実行
-3. 生成された `CatScreeningML.mlmodel` をエクスポート
 
-## Purpose
-このリポジトリは、機械学習モデルの作成を担当します。  
-推論やユーザフレンドリーなAPIは `CatScreeningKit` Swift Packageで提供されます。
+### 1. データの準備
+トレーニングに使用する猫の画像を、`Resources/ScaryCatScreenerData/` 内の `Scary` または `NonScary` サブディレクトリに手動で作成・配置します（このフォルダ構造はXcodeナビゲータで表示されるはずです）
+- `Resources/ScaryCatScreenerData/Scary/` には「怖い」と判断した猫の画像
+- `Resources/ScaryCatScreenerData/NonScary/` には「怖くない」と判断した猫の画像
+
+**画像枚数の目安:**
+- 「怖い」という主観的な分類は難しいため、多様な画像が必要です
+- まずは各クラス（`Scary`, `NonScary`）あたり数百枚の多様な画像から始めるのが現実的ですが、少ない枚数（数十枚〜）でも試す価値はあり、精度を見ながら、間違えやすい画像を分析し、データを反復的に追加・改善していくことが望ましいです
+
+### 2. Playgroundの実行
+Xcodeで `CatScreeningML.playground` を開き、実行します（Cmd+Shift+Return または再生ボタンをクリック）
+
+### 3. 出力の監視
+コンソールでトレーニングの進捗状況とエラーを確認します
+
+### 4. モデルのエクスポート
+トレーニングが完了すると、`ScaryCatScreener.mlmodel` ファイルがPlaygroundルートに自動生成される `OutputModels/` ディレクトリに保存されます
 
 ## Notes
-- 再訓練したい場合は、このPlaygroundだけを更新すればOK
-- Core MLやVisionのAPIを直接使うことはありません
-- 推論ロジックはCatScreeningKit側で担当します
+- モデルを再トレーニングするには、`Resources/` ディレクトリ内の画像を更新し、Playgroundを再実行するだけです
+- トレーニングスクリプトはデフォルトのCreate MLパラメータを使用しており、チューニングについては、`BaseScreenerTrainer.swift` 内の `executeTrainingCore` メソッドなどを変更します
 
