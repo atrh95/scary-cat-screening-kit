@@ -1,5 +1,5 @@
-import UIKit
 import PlaygroundSupport
+import UIKit
 
 // Sourcesフォルダ内のTrainModel.swiftにある関数を呼び出します。
 // （TrainModel.swiftがSourcesにあれば、特別なimport文は不要です）

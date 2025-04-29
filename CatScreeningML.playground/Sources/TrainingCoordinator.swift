@@ -2,8 +2,7 @@ import Foundation
 
 // --- トレーニング全体の調整役 ---
 
-public struct TrainingCoordinator {
-
+public enum TrainingCoordinator {
     private static let playgroundRootUrl: URL = {
         guard let resourceUrl = Bundle.main.resourceURL else {
             print("エラー: バンドルリソースURLが見つかりません。一時ディレクトリをデフォルトにします。")
@@ -25,7 +24,11 @@ public struct TrainingCoordinator {
 
         // 出力ディレクトリが存在することを確認します。
         do {
-            try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true, attributes: nil)
+            try FileManager.default.createDirectory(
+                at: outputDirectory,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
             print("出力ディレクトリを作成/確認しました: \(outputDirectory.path)")
         } catch {
             print("致命的エラー: 出力ディレクトリの作成に失敗しました: \(error.localizedDescription)")
@@ -44,4 +47,4 @@ public struct TrainingCoordinator {
         print("コンソールのログで各モデルのトレーニング結果を確認してください。")
         print("-----------------------------------------")
     }
-} 
+}
