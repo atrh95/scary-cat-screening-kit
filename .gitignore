@@ -1,0 +1,20 @@
+# Swift Playgrounds
+timeline.xctimeline
+playground.xcworkspace/
+contents.xcworkspacedata
+UserInterfaceState.xcuserstate
+
+# Playground-specific
+*.playground/Timeline.xctimeline
+*.playground/UserInterfaceState.xcuserstate
+*.playground/Documents/
+
+# Archives and temporary files
+*.zip
+*.tar.gz
+*.tmp
+*.swp
+*.lock
+
+# Cursor editor settings
+.cursor/
