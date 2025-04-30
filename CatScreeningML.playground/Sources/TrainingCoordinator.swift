@@ -20,8 +20,19 @@ public enum TrainingCoordinator {
         return dir.appendingPathComponent("Resources")
     }()
 
-    // outputDirectory は sharedDataDirectory を使う
-    private static let outputDirectory: URL = sharedDataDirectory.appendingPathComponent("OutputModels")
+    // outputDirectory を .playground と同じ階層（親ディレクトリ）に変更
+    private static let outputDirectory: URL = {
+        // ① #filePath で現在のソースファイルのフルパスを取得
+        var dir = URL(fileURLWithPath: #filePath)
+
+        // ② 親ディレクトリを辿って .playground のさらに親へ
+        dir.deleteLastPathComponent() // TrainingCoordinator.swift -> Sources
+        dir.deleteLastPathComponent() // Sources -> CatScreeningML.playground
+        dir.deleteLastPathComponent() // CatScreeningML.playground -> 親ディレクトリ (cat-screening-ml)
+
+        // ③ 親ディレクトリ直下の "OutputModels" を指す URL を返す
+        return dir.appendingPathComponent("OutputModels")
+    }()
 
     // --- トレーニングプロセス開始のエントリーポイント ---
     public static func startTraining() {

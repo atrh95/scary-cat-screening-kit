@@ -52,6 +52,18 @@ class BaseScreenerTrainer {
                 version: "1.0"
             )
 
+            // 既存のモデルファイルを削除 (存在しない場合はエラーを無視)
+            do {
+                try FileManager.default.removeItem(at: outputModelPath)
+                print("既存のモデルファイルを削除しました: \(outputModelPath.path)")
+            } catch CocoaError.fileNoSuchFile {
+                // ファイルが存在しない場合は何もしない
+                print("既存のモデルファイルは見つかりませんでした。削除はスキップします。")
+            } catch {
+                // その他の削除エラー（権限など）は警告として出力
+                print("警告: 既存のモデルファイルの削除中にエラーが発生しました: \(error.localizedDescription)")
+            }
+
             print("\(modelName)を保存中: \(outputModelPath.path)")
             try model.write(to: outputModelPath, metadata: metadata)
             print("\(modelName)は正常に保存されました。")
