@@ -18,3 +18,11 @@ UserInterfaceState.xcuserstate
 
 # Cursor editor settings
 .cursor/
+
+# Build artifacts
+DerivedData/
+Build/
+
+# Generated ML models
+OutputModels/
+*.mlmodel
