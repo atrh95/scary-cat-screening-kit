@@ -5,21 +5,60 @@ import Foundation
 class BaseScreenerTrainer {
     init() {}
 
-    // サブクラスでオーバーライドされるべきプロパティ
+    // サブクラスでオーバーライド必須
     var modelName: String { fatalError("サブクラスでオーバーライドする必要があります") }
     var dataDirectoryName: String { fatalError("サブクラスでオーバーライドする必要があります") }
 
-    final func train(resourcesDir: URL, outputDir: URL) {
+    // カスタム出力ディレクトリパス (デフォルト: "OutputModels")
+    var customOutputDirPath: String { "OutputModels" }
+
+    // リソースディレクトリのパス (サブクラスで設定必須)
+    var resourcesDirectoryPath: String? { nil }
+
+    final func train() {
+        // リソースパスの検証
+        guard let resourcesPath = resourcesDirectoryPath, !resourcesPath.isEmpty else {
+            print("エラー: \(modelName) の resourcesDirectoryPath が設定されていません。サブクラスでオーバーライドしてください。")
+            return
+        }
+        let resourcesDir = URL(fileURLWithPath: resourcesPath)
+
         let trainingDataParentDir = resourcesDir.appendingPathComponent(dataDirectoryName)
-        let outputModelPath = outputDir.appendingPathComponent("\(modelName).mlmodel")
+
+        // 出力先決定のためPlaygroundのルートと親ディレクトリを計算
+        var playgroundRoot = URL(fileURLWithPath: #filePath)
+        playgroundRoot.deleteLastPathComponent() // -> ImageScreeningTrainer
+        playgroundRoot.deleteLastPathComponent() // -> Sources
+        playgroundRoot.deleteLastPathComponent() // -> CatScreeningML.playground
+        var baseOutputDir = playgroundRoot
+        baseOutputDir.deleteLastPathComponent() // -> 親ディレクトリ
+
+        // 最終的な出力ディレクトリを決定
+        let finalOutputDir: URL
+        let customPath = customOutputDirPath
+        if !customPath.isEmpty {
+            let customURL = URL(fileURLWithPath: customPath)
+            if customURL.isFileURL && customPath.hasPrefix("/") { // 絶対パス
+                finalOutputDir = customURL
+            } else { // 相対パス
+                finalOutputDir = baseOutputDir.appendingPathComponent(customPath)
+            }
+            try? FileManager.default.createDirectory(at: finalOutputDir, withIntermediateDirectories: true, attributes: nil)
+        } else {
+            // customOutputDirPathが空の場合 (通常発生しない)
+            print("警告: customOutputDirPathが空です。デフォルトのOutputModelsを使用します。")
+            finalOutputDir = baseOutputDir.appendingPathComponent("OutputModels")
+            try? FileManager.default.createDirectory(at: finalOutputDir, withIntermediateDirectories: true, attributes: nil)
+        }
 
         print("\n\(modelName)のトレーニングを開始します...")
         print("  データソース: \(trainingDataParentDir.path)")
+        print("  出力先ディレクトリ: \(finalOutputDir.path)")
 
-        executeTrainingCore(trainingDataParentDir: trainingDataParentDir, outputModelPath: outputModelPath)
+        executeTrainingCore(trainingDataParentDir: trainingDataParentDir, outputDir: finalOutputDir)
     }
 
-    private func executeTrainingCore(trainingDataParentDir: URL, outputModelPath: URL) {
+    private func executeTrainingCore(trainingDataParentDir: URL, outputDir: URL) {
         print("\(modelName)のデータを親ディレクトリから読み込みます: \(trainingDataParentDir.path)")
 
         guard FileManager.default.fileExists(atPath: trainingDataParentDir.path) else {
@@ -61,20 +100,21 @@ class BaseScreenerTrainer {
                 version: "1.0"
             )
 
-            // 既存のモデルファイルを削除 (存在しない場合はエラーを無視)
-            do {
-                try FileManager.default.removeItem(at: outputModelPath)
-                print("既存のモデルファイルを削除しました: \(outputModelPath.path)")
-            } catch CocoaError.fileNoSuchFile {
-                // ファイルが存在しない場合は何もしない
-                print("既存のモデルファイルは見つかりませんでした。削除はスキップします。")
-            } catch {
-                // その他の削除エラー（権限など）は警告として出力
-                print("警告: 既存のモデルファイルの削除中にエラーが発生しました: \(error.localizedDescription)")
+            let fileManager = FileManager.default
+            var outputModelURL = outputDir.appendingPathComponent("\(modelName).mlmodel")
+            var counter = 1
+            let baseName = modelName
+            let fileExtension = "mlmodel"
+
+            // 同名ファイルが存在する場合は連番を付与
+            while fileManager.fileExists(atPath: outputModelURL.path) {
+                let newName = "\(baseName)_\(counter).\(fileExtension)"
+                outputModelURL = outputDir.appendingPathComponent(newName)
+                counter += 1
             }
 
-            print("\(modelName)を保存中: \(outputModelPath.path)")
-            try model.write(to: outputModelPath, metadata: metadata)
+            print("\(modelName)を保存中: \(outputModelURL.path)")
+            try model.write(to: outputModelURL, metadata: metadata)
             print("\(modelName)は正常に保存されました。")
 
         } catch let error as CreateML.MLCreateError {
