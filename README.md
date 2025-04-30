@@ -1,81 +1,81 @@
-# CatScreeningML
+# CatScreeningKit
+
+Core MLモデルを使用した様々な猫の画像分類タスクを実行するためのSwift Packageです。
 
 ## Overview
-CatScreeningMLは、Create MLフレームワークを使用して「怖い猫の画像」か「怖くない猫の画像」かを分類する画像スクリーニングモデル (`ScaryCatScreener.mlmodel`) をトレーニングするために設計されたSwift Playgroundプロジェクトです
 
-**前提:** このPlaygroundに入力される画像は、既に猫の画像のみにフィルタリングされていることを前提としています
+`CatScreeningKit` は、Core MLモデルを利用して猫の画像を分析・分類するためのフレームワークを提供します。第一弾の実装として、「怖い猫」か「怖くない猫」かを判定する `ScaryCatScreener` クラスと、それに対応する `ScaryCatScreener.mlmodel` を同梱しています。将来的には、異なる基準で猫を分類するスクリーナーを追加することを想定した設計になっています。
 
-当初は、「猫か猫以外か」を判定するモデル (`CatScreener`) と、「怖い猫か怖くない猫か」を判定するモデル (`ScaryCatScreener`) の二段階でスクリーニングを行う構成を検討していましたが、「猫か猫以外か」を判定するモデルのトレーニングには、以下のような課題があることがわかりました
+## Features
 
-- **無限の「猫以外」の存在:** モデルが現実世界のあらゆる「猫ではない」画像を正しく認識するためには、理論上、無限に近い種類の「猫以外」の画像（犬、他の動物、物、風景、イラスト、ぬいぐるみ等々）をデータセットに含める必要があります
-- **データの収集コスト:** このような網羅的で多様な「猫以外」の画像データを収集・管理するコストは非常に高くなります
-- **性能的な限界:** 十分な「猫以外」データを集めたとしても、未知の「猫ではない何か」に対して誤判定を起こす可能性が常に残り、現実の運用で期待通りの性能を出すのが困難になりがちです（例：「馬は大丈夫だがラクダは猫と間違える」）
-
-これらの理由から、より現実的で実用的なアプローチとして、「このMLモデルに入力される時点で、画像は既に猫であることがAPIなどの仕組みによって保証されている」という前提に方針を変更し、MLモデルは「与えられた猫の画像を『怖い』か『怖くない』かに分類する」という、より達成可能な目標に集中できます
-
-### 主な特徴
-- **Playgroundで完結:** 全プロセスはPlayground内で完結しており、学習からモデル出力まで可能です
-- **リソースパス:** `Bundle.main.resourceURL` を活用することで、Playground上でも安定的にリソースパスを解決できるように工夫しています
-- **デバッグ:** Xcodeコンソールに学習の進行状況やモデルのメタ情報を出力することで、トレーニングの透明性を高めています
+- **柔軟な設計:** `CatPredicting` プロトコルにより、様々な分類モデルをラップするスクリーナーを追加可能。
+- **初期実装:** `ScaryCatScreener.mlmodelc` を使用する `ScaryCatScreener` を提供。
+- **簡単な利用:** `UIImage` を分類する `predict` メソッドを提供。
+- **詳細な結果:** 予測ラベルと信頼度スコアを返します。
+- **信頼度制御:** 最小信頼度の閾値を設定可能です。
+- **堅牢なエラー処理:** 失敗時の詳細なエラー情報を提供する `PredictionError` enumを定義。
 
 ## Directory Structure
+
 ```
-CatScreeningML.playground/
-├── Contents.swift
-├── Sources/
-│   ├── ImageScreeningTrainer/
-│   │   ├── BaseScreenerTrainer.swift
-│   │   └── ScaryCatScreenerTrainer.swift
-│   └── TrainingCoordinator.swift
-├── Resources/
-│   └── ScaryCatScreenerData/
-│       ├── Scary/           
-│       └── NonScary/        
+.
+├── CatScreeningKit/
+│   ├── Sources/
+│   │   └── ScaryCatScreener/
+│   │       ├── Resource/
+│   │       │   └── ScaryCatScreener.mlmodel
+│   │       └── ScaryCatScreener.swift
+│   ├── Tests/
+│   │   └── ScaryCatScreenerTests/
+│   │       ├── NotScary/
+│   │       ├── Scary/
+│   │       └── ScaryCatScreenerTests.swift
+│   └── Package.swift
+├── CatScreeningML.playground/
+│   ├── CAT_SCREENING_ML.md
+│   ├── Contents.swift
+│   ├── Sources/
+│   │   ├── ImageScreeningTrainer/
+│   │   │   ├── BaseScreenerTrainer.swift
+│   │   │   └── ScaryCatScreenerTrainer.swift
+│   │   └── TrainingCoordinator.swift
+│   └── Resources/
+│       └── ScaryCatScreenerData/
+│           ├── Not Scary/
+│           └── Scary/
 ├── OutputModels/
 │   └── ScaryCatScreener.mlmodel
 └── README.md
 ```
-*注意: `OutputModels/` ディレクトリは、スクリプト実行時にPlaygroundのルートに自動的に作成されます
 
-## Workflow
+## Model Training Playground
 
-### 1. データの準備
-トレーニングに使用する猫の画像を、`Resources/ScaryCatScreenerData/` 内の `Scary` または `NonScary` サブディレクトリに手動で作成・配置します（このフォルダ構造はXcodeナビゲータで表示されるはずです）
-- `Resources/ScaryCatScreenerData/Scary/` には「怖い」と判断した猫の画像
-- `Resources/ScaryCatScreenerData/NonScary/` には「怖くない」と判断した猫の画像
+このリポジトリには、`ScaryCatScreener.mlmodel` のトレーニングプロセスを実演するための `CatScreeningML.playground` が含まれています。Playground を使用して、独自の画像データでモデルを再トレーニングしたり、トレーニングプロセスをカスタマイズしたりする方法については、以下の詳細なドキュメントを参照してください。
 
-**画像枚数の目安:**
-- 「怖い」という主観的な分類は難しいため、多様な画像が必要です
-- まずは各クラス（`Scary`, `NonScary`）あたり数百枚の多様な画像から始めるのが現実的ですが、少ない枚数（数十枚〜）でも試す価値はあり、精度を見ながら、間違えやすい画像を分析し、データを反復的に追加・改善していくことが望ましいです
+- [CatScreeningML Playground ドキュメント](./CatScreeningML.playground/CAT_SCREENING_ML.md)
 
-### 2. Playgroundの実行
-Xcodeで `CatScreeningML.playground` を開き、実行します（Cmd+Shift+Return または再生ボタンをクリック）
+## 設計方針
 
-### 3. 出力の監視
-コンソールでトレーニングの進捗状況とエラーを確認します
+`CatScreeningKit` は、テスト容易性と将来の拡張性を高めるために、プロトコル (`CatPredicting`) ベースの設計を採用しています。
 
-### 4. モデルのエクスポート
-トレーニングが完了すると、`ScaryCatScreener.mlmodel` ファイルがPlaygroundルートに自動生成される `OutputModels/` ディレクトリに保存されます
+### プロトコル (`CatPredicting`)
 
-## Notes
-- モデルを再トレーニングするには、`Resources/` ディレクトリ内の画像を更新し、Playgroundを再実行するだけです
-- トレーニングスクリプトはデフォルトのCreate MLパラメータを使用しており、チューニングについては、`BaseScreenerTrainer.swift` 内の `executeTrainingCore` メソッドなどを変更します
+主要な機能である画像予測は `CatPredicting` プロトコルによって抽象化されています。このプロトコルは、画像を受け取り、分類結果（ラベルと信頼度）またはエラーを非同期で返す `predict` メソッドを定義します。
 
-## トレーニング結果の見方
+クライアントコードは、具体的なスクリーナー実装クラス（例: `ScaryCatScreener`）に直接依存するのではなく、この `CatPredicting` プロトコルに依存することが強く推奨されます。これにより、以下のようなメリットが得られます:
 
-Playground 実行時にコンソールに出力されるトレーニング結果の精度指標は以下のように解釈します。
+*   **テスト容易性:** ユニットテスト時に、実際の Core ML モデルを必要としない軽量なモックオブジェクトを依存性注入できます。
+*   **柔軟性と拡張性:** 将来的に新しい分類基準を持つスクリーナーを追加する場合、それらも `CatPredicting` プロトコルに準拠させるだけで、既存のクライアントコードは最小限の変更で新しいスクリーナーを利用できます。
 
-*   **トレーニングエラー率:** モデルが学習に使ったデータに対する間違い率。低いほど学習データをよく覚えたことを示す。（例: 0% なら学習データは完璧に分類）
-*   **検証エラー率:** モデルが学習に使っていない未知のデータに対する間違い率。低いほどモデルの汎用性が高い（未知のデータに強い）ことを示す。（例: 10% なら未知データの正解率は90%）
+## 利用可能なスクリーナー
 
-一般的に「検証エラー率」がモデルの実際の性能に近い指標となります。トレーニングエラー率が極端に低く、検証エラー率が高い場合は、過学習（学習データの暗記）の可能性があります。
+現在、以下のスクリーナーが `CatScreeningKit` に含まれています。
 
-### モデルの改善
+- **ScaryCatScreener:** 猫の画像が「怖い」か「怖くない」かを分類します。
+    - [詳細ドキュメント](./CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
 
-検証エラー率が高い（=正解率が低い）場合や、過学習が見られる場合は、以下の点を試すことでモデルの性能を改善できる可能性があります。
+今後、他の分類基準を持つスクリーナーが追加される可能性があります。
 
-*   **データ追加・改善:** 学習データ（特に、モデルが間違えやすい画像）を増やしたり、多様性を持たせたりする。
-*   **データ拡張(Augmentation):** トレーニング時に画像を自動で加工（回転、反転など）する機能を使う (Create MLのパラメータで設定可能)。
-*   **パラメータ調整:** トレーニングの繰り返し回数などを調整する。
-*   **データ品質確認:** 画像の内容や「怖い/怖くない」のラベル付けが適切か見直す。
+## Error Handling
 
+`predict` メソッドは `Result<(label: String, confidence: Float), PredictionError>` を返します。失敗時には `PredictionError` で詳細なエラー内容を示します。 

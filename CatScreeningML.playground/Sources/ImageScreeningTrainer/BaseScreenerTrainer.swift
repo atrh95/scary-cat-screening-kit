@@ -1,5 +1,5 @@
-import CreateML
 import CoreML
+import CreateML
 import Foundation
 
 class BaseScreenerTrainer {
@@ -79,11 +79,11 @@ class BaseScreenerTrainer {
 
         } catch let error as CreateML.MLCreateError {
             switch error {
-            case .io:
-                print("モデル\(modelName)の保存エラー: I/Oエラー - \(error.localizedDescription)")
-            default:
-                print("モデル\(self.modelName)のトレーニングエラー: 未知の Create MLエラー - \(error.localizedDescription)")
-                print("詳細なCreate MLエラー: \(error)")
+                case .io:
+                    print("モデル\(modelName)の保存エラー: I/Oエラー - \(error.localizedDescription)")
+                default:
+                    print("モデル\(self.modelName)のトレーニングエラー: 未知の Create MLエラー - \(error.localizedDescription)")
+                    print("詳細なCreate MLエラー: \(error)")
             }
         } catch {
             print("\(modelName)のトレーニングまたは保存中に予期しないエラーが発生しました: \(error.localizedDescription)")

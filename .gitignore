@@ -26,3 +26,17 @@ Build/
 # Generated ML models
 OutputModels/
 *.mlmodel
+
+# Swift Package Manager
+.build/
+Packages/
+
+# User-specific
+xcuserdata/
+
+# Swift Package Manager - Cache
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+
+# Credentials
+.netrc
