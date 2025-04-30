@@ -4,33 +4,20 @@ import PlaygroundSupport
 // --- トレーニング全体の調整役 ---
 
 public enum TrainingCoordinator {
-    // sharedDataDirectory は出力用に保持
-    private static let sharedDataDirectory: URL = PlaygroundSupport.playgroundSharedDataDirectory
-
     // #filePath を使って Resources ディレクトリへのパスを構築
     private static let resourcesDirectory: URL = {
-        // ① #filePath で現在のソースファイルのフルパスを取得
         var dir = URL(fileURLWithPath: #filePath)
-
-        // ② 親ディレクトリを辿って .playground パッケージのルートへ
         dir.deleteLastPathComponent() // TrainingCoordinator.swift -> Sources
         dir.deleteLastPathComponent() // Sources -> CatScreeningML.playground (ここで止める)
-
-        // ③ .playground 直下の "Resources" を指す URL を返す
         return dir.appendingPathComponent("Resources")
     }()
 
     // outputDirectory を .playground と同じ階層（親ディレクトリ）に変更
     private static let outputDirectory: URL = {
-        // ① #filePath で現在のソースファイルのフルパスを取得
         var dir = URL(fileURLWithPath: #filePath)
-
-        // ② 親ディレクトリを辿って .playground のさらに親へ
         dir.deleteLastPathComponent() // TrainingCoordinator.swift -> Sources
         dir.deleteLastPathComponent() // Sources -> CatScreeningML.playground
         dir.deleteLastPathComponent() // CatScreeningML.playground -> 親ディレクトリ (cat-screening-ml)
-
-        // ③ 親ディレクトリ直下の "OutputModels" を指す URL を返す
         return dir.appendingPathComponent("OutputModels")
     }()
 

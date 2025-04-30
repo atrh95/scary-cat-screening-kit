@@ -43,8 +43,17 @@ class BaseScreenerTrainer {
             let model = try MLImageClassifier(trainingData: trainingDataSource, parameters: parameters)
             print("\(modelName)のトレーニングに成功しました！")
 
-            print("  トレーニング精度: \(model.trainingMetrics.classificationError * 100)%")
-            print("  検証精度: \(model.validationMetrics.classificationError * 100)%")
+            let trainingError = model.trainingMetrics.classificationError
+            let trainingAccuracy = (1.0 - trainingError) * 100
+            let trainingErrorStr = String(format: "%.2f", trainingError * 100)
+            let trainingAccStr = String(format: "%.2f", trainingAccuracy)
+            print("  トレーニングエラー率: \(trainingErrorStr)% (正解率: \(trainingAccStr)%)")
+
+            let validationError = model.validationMetrics.classificationError
+            let validationAccuracy = (1.0 - validationError) * 100
+            let validationErrorStr = String(format: "%.2f", validationError * 100)
+            let validationAccStr = String(format: "%.2f", validationAccuracy)
+            print("  検証エラー率: \(validationErrorStr)% (正解率: \(validationAccStr)%)")
 
             let metadata = MLModelMetadata(
                 author: "CatScreeningML Playground",
