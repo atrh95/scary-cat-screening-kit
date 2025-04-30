@@ -24,8 +24,7 @@ CatScreeningML.playground/
 ├── Contents.swift
 ├── Sources/
 │   ├── ImageScreeningTrainer/
-│   │   ├── Core/
-│   │   │   └── BaseScreenerTrainer.swift
+│   │   ├── BaseScreenerTrainer.swift
 │   │   └── ScaryCatScreenerTrainer.swift
 │   └── TrainingCoordinator.swift
 ├── Resources/

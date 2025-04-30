@@ -1,8 +1,8 @@
 import CreateML
+import CoreML
 import Foundation
 
 class BaseScreenerTrainer {
-    @available(*, unavailable, message: "BaseScreenerTrainerは直接インスタンス化できません。ScaryCatScreenerTrainerのようなサブクラスを使用してください。")
     init() {}
 
     // サブクラスでオーバーライドされるべきプロパティ
@@ -45,9 +45,6 @@ class BaseScreenerTrainer {
 
             print("  トレーニング精度: \(model.trainingMetrics.classificationError * 100)%")
             print("  検証精度: \(model.validationMetrics.classificationError * 100)%")
-            print("  モデルの説明: \(model.modelDescription)")
-            print("  期待される入力: \(model.modelDescription.inputDescriptionsByName)")
-            print("  期待される出力: \(model.modelDescription.outputDescriptionsByName)")
 
             let metadata = MLModelMetadata(
                 author: "CatScreeningML Playground",
@@ -59,22 +56,14 @@ class BaseScreenerTrainer {
             try model.write(to: outputModelPath, metadata: metadata)
             print("\(modelName)は正常に保存されました。")
 
-        } catch let error as MLError where error.isCode(.io) {
-            print("モデル\(modelName)の保存エラー: I/Oエラー - \(error.localizedDescription)")
-        } catch let error as MLError where error.isCode(.datumNotFound) {
-            print("モデル\(modelName)のトレーニングエラー: Create MLエラー - データが見つかりません。 \(error.localizedDescription)")
-            print(
-                "データディレクトリ（例: \(trainingDataParentDir.path)/Cat, " +
-                "\(trainingDataParentDir.path)/NotCat）が存在し、有効な画像が含まれているか確認してください。"
-            )
-            print("詳細なCreate MLエラー: \(error)")
-        } catch let error as MLError where error.isCode(.datumUnsupportedFormat) {
-            print("モデル\(modelName)のトレーニングエラー: Create MLエラー - サポートされていないデータ形式です。 \(error.localizedDescription)")
-            print("\(trainingDataParentDir.path) 内の画像ファイルがサポートされている形式（例: JPG、PNG）であることを確認してください。")
-            print("詳細なCreate MLエラー: \(error)")
-        } catch let error as MLError {
-            print("モデル\(self.modelName)のトレーニングエラー: Create MLエラー - \(error.localizedDescription)")
-            print("詳細なCreate MLエラー: \(error)")
+        } catch let error as CreateML.MLCreateError {
+            switch error {
+            case .io:
+                print("モデル\(modelName)の保存エラー: I/Oエラー - \(error.localizedDescription)")
+            default:
+                print("モデル\(self.modelName)のトレーニングエラー: 未知の Create MLエラー - \(error.localizedDescription)")
+                print("詳細なCreate MLエラー: \(error)")
+            }
         } catch {
             print("\(modelName)のトレーニングまたは保存中に予期しないエラーが発生しました: \(error.localizedDescription)")
         }
