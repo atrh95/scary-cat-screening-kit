@@ -1,20 +1,27 @@
 import Foundation
+import PlaygroundSupport
 
 // --- トレーニング全体の調整役 ---
 
 public enum TrainingCoordinator {
-    private static let playgroundRootUrl: URL = {
-        guard let resourceUrl = Bundle.main.resourceURL else {
-            print("エラー: バンドルリソースURLが見つかりません。一時ディレクトリをデフォルトにします。")
-            return FileManager.default.temporaryDirectory.appendingPathComponent("CatScreeningML_Fallback")
-        }
-        let potentialRoot = resourceUrl.deletingLastPathComponent()
-        print("特定されたPlaygroundルートURL: \(potentialRoot.path)")
-        return potentialRoot
+    // sharedDataDirectory は出力用に保持
+    private static let sharedDataDirectory: URL = PlaygroundSupport.playgroundSharedDataDirectory
+
+    // #filePath を使って Resources ディレクトリへのパスを構築
+    private static let resourcesDirectory: URL = {
+        // ① #filePath で現在のソースファイルのフルパスを取得
+        var dir = URL(fileURLWithPath: #filePath)
+
+        // ② 親ディレクトリを辿って .playground パッケージのルートへ
+        dir.deleteLastPathComponent() // TrainingCoordinator.swift -> Sources
+        dir.deleteLastPathComponent() // Sources -> CatScreeningML.playground (ここで止める)
+
+        // ③ .playground 直下の "Resources" を指す URL を返す
+        return dir.appendingPathComponent("Resources")
     }()
 
-    private static let resourcesDirectory: URL = playgroundRootUrl.appendingPathComponent("Resources")
-    private static let outputDirectory: URL = playgroundRootUrl.appendingPathComponent("OutputModels")
+    // outputDirectory は sharedDataDirectory を使う
+    private static let outputDirectory: URL = sharedDataDirectory.appendingPathComponent("OutputModels")
 
     // --- トレーニングプロセス開始のエントリーポイント ---
     public static func startTraining() {
