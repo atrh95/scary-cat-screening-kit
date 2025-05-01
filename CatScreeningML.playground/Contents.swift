@@ -1,20 +1,31 @@
 import PlaygroundSupport
-
-// Sourcesフォルダ内のTrainModel.swiftにある関数を呼び出します。
-
-print("Playgroundの実行を開始します...")
+import Foundation // FileManagerを使うために追加
 
 // モデルのトレーニングのような非同期処理が完了するのを許可します。
 PlaygroundPage.current.needsIndefiniteExecution = true
 
-// --- トレーニング開始処理 (元 TrainingCoordinator.startTraining) ---
-print("--- CatScreeningML トレーニング開始 ---")
+// --- メタデータ定義 ---
+let modelAuthor = "akitora"
+let modelDescription = "ScaryCatScreener v1.0.0"
+let modelVersion = "1.0.0"
+// ---------------------
 
-// トレーナークラスのインスタンスを作成、trainメソッドを呼び出し
+// トレーナークラスのインスタンスを作成
 let scaryCatTrainer = ScaryCatScreenerTrainer()
-scaryCatTrainer.train()
 
-print("\n--- トレーニング処理を開始しました --- ")
-print("非同期で実行するため、完了まで時間がかかる場合があります。")
-print("結果はこちらのコンソールに出力されます。")
-print("-----------------------------------------")
+// trainメソッドを呼び出し、メタデータを渡す
+if let result = scaryCatTrainer.train(author: modelAuthor, shortDescription: modelDescription, version: modelVersion) {
+    print("すべての処理が完了しました。")
+
+    // 結果をファイルに記録 (TrainingResultLoggerを使用)
+    TrainingResultLogger.saveResultToFile(
+        result: result,
+        trainer: scaryCatTrainer,
+        modelAuthor: modelAuthor,
+        modelDescription: modelDescription,
+        modelVersion: modelVersion
+    )
+
+} else {
+    print("🛑 トレーニングまたはモデルの保存中にエラーが発生しました。")
+}

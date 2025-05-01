@@ -15,5 +15,16 @@ public protocol ScreeningTrainerProtocol {
     var resourcesDirectoryPath: String { get }
 
     /// トレーニング実行 (読み込み、学習、評価、保存)
-    func train()
+    /// - Parameters:
+    ///   - author: モデルの作成者
+    ///   - shortDescription: モデルの簡単な説明
+    ///   - version: モデルのバージョン
+    /// - Returns: トレーニング結果 (成功時) または nil (失敗時)
+    func train(author: String, shortDescription: String, version: String) -> (
+        trainingAccuracy: Double, validationAccuracy: Double,
+        trainingError: Double, validationError: Double,
+        trainingDuration: TimeInterval,
+        modelOutputPath: String, trainingDataPath: String,
+        classLabels: [String]
+    )?
 }
