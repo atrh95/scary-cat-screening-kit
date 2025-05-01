@@ -1,51 +1,44 @@
+import Foundation
 import CoreML
 import CreateML
-import Foundation
 
-class BaseScreenerTrainer {
-    init() {}
+public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
+    public var modelName: String { "ScaryCatScreeningML" }
+    public var dataDirectoryName: String { "ScaryCatScreenerData" }
+    public var customOutputDirPath: String { "OutputModels" }
 
-    // サブクラスでオーバーライド必須
-    var modelName: String { fatalError("サブクラスでオーバーライドする必要があります") }
-    var dataDirectoryName: String { fatalError("サブクラスでオーバーライドする必要があります") }
+    public var resourcesDirectoryPath: String {
+        var dir = URL(fileURLWithPath: #filePath)
+        dir.deleteLastPathComponent()
+        dir.deleteLastPathComponent()
+        return dir.appendingPathComponent("Resources").path
+    }
 
-    // カスタム出力ディレクトリパス (デフォルト: "OutputModels")
-    var customOutputDirPath: String { "OutputModels" }
+    public init() {}
 
-    // リソースディレクトリのパス (サブクラスで設定必須)
-    var resourcesDirectoryPath: String? { nil }
+    public func train() {
+        let resourcesPath = resourcesDirectoryPath
 
-    final func train() {
-        // リソースパスの検証
-        guard let resourcesPath = resourcesDirectoryPath, !resourcesPath.isEmpty else {
-            print("エラー: \(modelName) の resourcesDirectoryPath が設定されていません。サブクラスでオーバーライドしてください。")
-            return
-        }
         let resourcesDir = URL(fileURLWithPath: resourcesPath)
-
         let trainingDataParentDir = resourcesDir.appendingPathComponent(dataDirectoryName)
 
-        // 出力先決定のためPlaygroundのルートと親ディレクトリを計算
         var playgroundRoot = URL(fileURLWithPath: #filePath)
-        playgroundRoot.deleteLastPathComponent() // -> ImageScreeningTrainer
-        playgroundRoot.deleteLastPathComponent() // -> Sources
-        playgroundRoot.deleteLastPathComponent() // -> CatScreeningML.playground
+        playgroundRoot.deleteLastPathComponent()
+        playgroundRoot.deleteLastPathComponent()
         var baseOutputDir = playgroundRoot
-        baseOutputDir.deleteLastPathComponent() // -> 親ディレクトリ
+        baseOutputDir.deleteLastPathComponent()
 
-        // 最終的な出力ディレクトリを決定
         let finalOutputDir: URL
         let customPath = customOutputDirPath
         if !customPath.isEmpty {
             let customURL = URL(fileURLWithPath: customPath)
-            if customURL.isFileURL && customPath.hasPrefix("/") { // 絶対パス
+            if customURL.isFileURL && customPath.hasPrefix("/") {
                 finalOutputDir = customURL
-            } else { // 相対パス
+            } else {
                 finalOutputDir = baseOutputDir.appendingPathComponent(customPath)
             }
             try? FileManager.default.createDirectory(at: finalOutputDir, withIntermediateDirectories: true, attributes: nil)
         } else {
-            // customOutputDirPathが空の場合 (通常発生しない)
             print("警告: customOutputDirPathが空です。デフォルトのOutputModelsを使用します。")
             finalOutputDir = baseOutputDir.appendingPathComponent("OutputModels")
             try? FileManager.default.createDirectory(at: finalOutputDir, withIntermediateDirectories: true, attributes: nil)
@@ -75,8 +68,13 @@ class BaseScreenerTrainer {
         }
 
         let trainingDataSource = MLImageClassifier.DataSource.labeledDirectories(at: trainingDataParentDir)
-        let parameters = MLImageClassifier.ModelParameters()
-        print("\(modelName)をトレーニング中... (時間がかかる場合があります)")
+        
+        // トレーニングパラメータ設定
+        let parameters = MLImageClassifier.ModelParameters(
+            augmentation: [.rotate, .crop, .flip, .blur, .exposure]
+        )
+        
+        print("\(modelName)をトレーニング中... (パラメータ: データ拡張有効, 反復回数自動)")
 
         do {
             let model = try MLImageClassifier(trainingData: trainingDataSource, parameters: parameters)
@@ -106,7 +104,6 @@ class BaseScreenerTrainer {
             let baseName = modelName
             let fileExtension = "mlmodel"
 
-            // 同名ファイルが存在する場合は連番を付与
             while fileManager.fileExists(atPath: outputModelURL.path) {
                 let newName = "\(baseName)_\(counter).\(fileExtension)"
                 outputModelURL = outputDir.appendingPathComponent(newName)

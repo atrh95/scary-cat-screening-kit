@@ -7,9 +7,14 @@ print("Playgroundの実行を開始します...")
 // モデルのトレーニングのような非同期処理が完了するのを許可します。
 PlaygroundPage.current.needsIndefiniteExecution = true
 
-// TrainingCoordinatorのトレーニング開始メソッドを呼び出します。
-TrainingCoordinator.startTraining()
+// --- トレーニング開始処理 (元 TrainingCoordinator.startTraining) ---
+print("--- CatScreeningML トレーニング開始 ---")
 
-print("トレーニング開始処理が完了しました。")
-// 実際のトレーニングは非同期で行われます。
-// 進捗や完了/エラーはコンソール出力を確認してください。
+// トレーナークラスのインスタンスを作成、trainメソッドを呼び出し
+let scaryCatTrainer = ScaryCatScreenerTrainer()
+scaryCatTrainer.train()
+
+print("\n--- トレーニング処理を開始しました --- ")
+print("非同期で実行するため、完了まで時間がかかる場合があります。")
+print("結果はこちらのコンソールに出力されます。")
+print("-----------------------------------------")
