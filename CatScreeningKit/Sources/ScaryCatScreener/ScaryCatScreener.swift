@@ -3,45 +3,43 @@ import UIKit
 import Vision
 
 /// ScaryCatScreenerモデルをロードし、予測を実行するクラス
-public final class ScaryCatScreener: CatPredicting {
+public final class ScaryCatScreener: CatScreenerProtocol {
     /// 共有インスタンス (初期化に失敗した場合は nil)
-    public static let shared: CatPredicting? = ScaryCatScreener()
+    public static let shared: CatScreenerProtocol? = ScaryCatScreener()
 
-    private let model: VNCoreMLModel
+    // MARK: - Properties
+
+    private let model: ScaryCatScreeningML?
+    private var visionModel: VNCoreMLModel?
+    public var minConfidence: Float = 0.7 // Default confidence threshold
+
+    // MARK: - Initialization
 
     /// Core MLモデルをロードするための初期化子 (失敗する可能性あり)
     public init?() {
-        let modelName = "ScaryCatScreener"
-        // Use Bundle.module to access resources in Swift Packages
-        guard let modelURL = Bundle.module.url(forResource: modelName, withExtension: "mlmodelc") else {
-            print("Error: Failed to find model '\(modelName).mlmodelc' in Bundle.module")
-            // Consider adding logging or using modelLoadingFailed error case if init could throw
+        guard let url = Bundle.module.url(forResource: "ScaryCatScreeningML", withExtension: "mlmodelc") else {
+            print("Error: Model file not found in bundle.")
             return nil
         }
-
-        // Load the MLModel first
-        guard let mlModel = try? MLModel(contentsOf: modelURL) else {
-            print("Error: Failed to load MLModel from URL: \(modelURL)")
+        do {
+            let mlModel = try MLModel(contentsOf: url)
+            self.model = ScaryCatScreeningML(model: mlModel) // Keep the specific model type internally
+            self.visionModel = try VNCoreMLModel(for: mlModel)
+            print("ScaryCatScreener initialized successfully.")
+        } catch {
+            print("Error initializing model: \(error)")
             return nil
         }
-
-        // Create the VNCoreMLModel from the loaded MLModel
-        guard let vnModel = try? VNCoreMLModel(for: mlModel) else {
-            print("Error: Failed to create VNCoreMLModel from MLModel")
-            return nil
-        }
-        model = vnModel
-        print("ScaryCatScreener initialized successfully with model: \(modelName)")
     }
 
-    /// 画像の予測を実行します。
+    // MARK: - Prediction
+
+    /// Predicts if the cat in the image is scary or not scary.
     /// - Parameters:
-    ///   - image: 予測対象の画像
-    ///   - minConfidence: 予測結果として採用する最小信頼度
-    ///   - completion: 予測結果またはエラーを受け取るクロージャ
-    public func predict(
+    ///   - image: The input UIImage.
+    ///   - completion: The completion handler returning the result.
+    public func screen(
         image: UIImage,
-        minConfidence: Float,
         completion: @escaping (Result<(label: String, confidence: Float), PredictionError>) -> Void
     ) {
         // Ensure the image can be converted to CGImage
@@ -51,7 +49,7 @@ public final class ScaryCatScreener: CatPredicting {
         }
 
         // Create a Vision request using the loaded model
-        let request = VNCoreMLRequest(model: model) { request, error in
+        let request = VNCoreMLRequest(model: visionModel!) { request, error in
             // Handle potential errors during the request processing
             if let error {
                 completion(.failure(.processingError(error)))
@@ -67,10 +65,10 @@ public final class ScaryCatScreener: CatPredicting {
             }
 
             // Check if the top result meets the minimum confidence threshold
-            if topResult.confidence >= minConfidence {
+            if topResult.confidence >= self.minConfidence {
                 completion(.success((label: topResult.identifier, confidence: topResult.confidence)))
             } else {
-                completion(.failure(.lowConfidence(threshold: minConfidence, actual: topResult.confidence)))
+                completion(.failure(.lowConfidence(threshold: self.minConfidence, actual: topResult.confidence)))
             }
         }
 
@@ -84,5 +82,15 @@ public final class ScaryCatScreener: CatPredicting {
             // Handle errors during the request handler execution
             completion(.failure(.processingError(error)))
         }
+    }
+
+    // MARK: - Private Helper
+
+    private func processObservations(
+        for request: VNRequest,
+        error: Error?,
+        completion: @escaping (Result<(label: String, confidence: Float), PredictionError>) -> Void
+    ) {
+        // ... rest of the method implementation ...
     }
 }
