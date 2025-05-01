@@ -2,20 +2,13 @@
 
 Core MLモデルを使用した様々な猫の画像分類タスクを実行するためのSwift Packageです。
 
-## Overview
+## 概要
 
-`CatScreeningKit` は、Core MLモデルを利用して猫の画像を分析・分類するためのフレームワークを提供します。第一弾の実装として、「怖い猫」か「怖くない猫」かを判定する `ScaryCatScreener` クラスと、それに対応する `ScaryCatScreener.mlmodel` を同梱しています。将来的には、異なる基準で猫を分類するスクリーナーを追加することを想定した設計になっています。
+`CatScreeningKit` は、Core MLモデルを利用して猫の画像を分析・分類するためのフレームワークを提供します。第一弾の実装として、「怖い猫」か「怖くない猫」かを判定する `ScaryCatScreener` を同梱しています。このスクリーナーは `ScaryCatScreeningML.mlmodel` を利用します。フレームワークは将来的に、異なる基準で猫を分類するスクリーナーを追加することを想定した、拡張性の高い設計になっています。
 
-## Features
+主な機能として、`CatScreenerProtocol` に基づくプロトコル指向設計を採用しており、テスト容易性と拡張性を高めています。初期実装の `ScaryCatScreener` は、`UIImage` を入力として受け取り、分類ラベルと信頼度スコアを非同期で返す `screen` メソッドを提供します。分類の最小信頼度は設定可能で、エラー発生時には `PredictionError` enum で詳細情報を提供します。
 
-- **柔軟な設計:** `CatPredicting` プロトコルにより、様々な分類モデルをラップするスクリーナーを追加可能。
-- **初期実装:** `ScaryCatScreener.mlmodelc` を使用する `ScaryCatScreener` を提供。
-- **簡単な利用:** `UIImage` を分類する `predict` メソッドを提供。
-- **詳細な結果:** 予測ラベルと信頼度スコアを返します。
-- **信頼度制御:** 最小信頼度の閾値を設定可能です。
-- **堅牢なエラー処理:** 失敗時の詳細なエラー情報を提供する `PredictionError` enumを定義。
-
-## Directory Structure
+## ディレクトリ構成
 
 ```
 .
@@ -23,7 +16,7 @@ Core MLモデルを使用した様々な猫の画像分類タスクを実行す�
 │   ├── Sources/
 │   │   └── ScaryCatScreener/
 │   │       ├── Resource/
-│   │       │   └── ScaryCatScreener.mlmodel
+│   │       │   └── ScaryCatScreeningML.mlmodel
 │   │       └── ScaryCatScreener.swift
 │   ├── Tests/
 │   │   └── ScaryCatScreenerTests/
@@ -31,51 +24,49 @@ Core MLモデルを使用した様々な猫の画像分類タスクを実行す�
 │   │       ├── Scary/
 │   │       └── ScaryCatScreenerTests.swift
 │   └── Package.swift
+│
 ├── CatScreeningML.playground/
-│   ├── CAT_SCREENING_ML.md
 │   ├── Contents.swift
-│   ├── Sources/
-│   │   ├── ImageScreeningTrainer/
-│   │   │   ├── BaseScreenerTrainer.swift
-│   │   │   └── ScaryCatScreenerTrainer.swift
-│   │   └── TrainingCoordinator.swift
-│   └── Resources/
-│       └── ScaryCatScreenerData/
-│           ├── Not Scary/
-│           └── Scary/
+│   ├── Resources/
+│   │   └── ScaryCatScreenerData/
+│   │       ├── Not Scary/
+│   │       └── Scary/
+│   └── Sources/
+│       ├── ScaryCatScreenerTrainer.swift
+│       ├── ScreeningTrainerProtocol.swift
+│       └── AccuracyImprovementTips.md
 ├── OutputModels/
-│   └── ScaryCatScreener.mlmodel
+│   └── ScaryCatScreeningML/
+│
+├── .gitignore
 └── README.md
 ```
 
-## Model Training Playground
+## モデルトレーニング用Playground (`CatScreeningML.playground`)
 
-このリポジトリには、`ScaryCatScreener.mlmodel` のトレーニングプロセスを実演するための `CatScreeningML.playground` が含まれています。Playground を使用して、独自の画像データでモデルを再トレーニングしたり、トレーニングプロセスをカスタマイズしたりする方法については、以下の詳細なドキュメントを参照してください。
+リポジトリには `ScaryCatScreeningML.mlmodel` のトレーニングを実行・試行するための `CatScreeningML.playground` が含まれています。
 
-- [CatScreeningML Playground ドキュメント](./CatScreeningML.playground/CAT_SCREENING_ML.md)
+**Playgroundの実行:** Xcodeで `CatScreeningKit` プロジェクトを開き、ナビゲーターから `CatScreeningML.playground` を選択して実行（▶︎）します。`Contents.swift` が `Sources` 内の `ScaryCatScreenerTrainer` を使用してトレーニングを開始します。進捗、結果、エラー、モデル保存先はコンソールに出力されます（非同期処理のため完了まで時間がかかる場合があります）。
 
-## 設計方針
+**トレーニング設定:** 設定は `CatScreeningML.playground/Sources/ScaryCatScreenerTrainer.swift` で行います。`modelName`, `dataDirectoryName`, `customOutputDirPath`, `resourcesDirectoryPath` を調整できます。また、`executeTrainingCore` メソッド内の `MLImageClassifier.ModelParameters` でデータ拡張 (`augmentation`) や最大反復回数 (`maxIterations`) などのトレーニングパラメータも設定可能です。
 
-`CatScreeningKit` は、テスト容易性と将来の拡張性を高めるために、プロトコル (`CatPredicting`) ベースの設計を採用しています。
+**トレーニングデータ:** 画像データは `CatScreeningML.playground/Resources/ScaryCatScreenerData/` 内に配置します。クラス名（例: `Scary`, `Not Scary`）と同じ名前のサブディレクトリを作成し、画像を入れます。
 
-### プロトコル (`CatPredicting`)
+**出力モデル:** トレーニングが成功すると、`customOutputDirPath`（デフォルト: `OutputModels/`）に `.mlmodel` ファイルが生成されます（同名ファイル存在時は連番付与）。生成されたモデルを `CatScreeningKit` で使用するには、`CatScreeningKit/Sources/ScaryCatScreener/Resource/` にコピーし、必要に応じてリネームしてください。
 
-主要な機能である画像予測は `CatPredicting` プロトコルによって抽象化されています。このプロトコルは、画像を受け取り、分類結果（ラベルと信頼度）またはエラーを非同期で返す `predict` メソッドを定義します。
+**精度改善:** モデル精度改善のヒントは [AccuracyImprovementTips.md](CatScreeningML.playground/Sources/AccuracyImprovementTips.md) を参照してください。
 
-クライアントコードは、具体的なスクリーナー実装クラス（例: `ScaryCatScreener`）に直接依存するのではなく、この `CatPredicting` プロトコルに依存することが強く推奨されます。これにより、以下のようなメリットが得られます:
+## 設計方針 (`CatScreenerProtocol`)
 
-*   **テスト容易性:** ユニットテスト時に、実際の Core ML モデルを必要としない軽量なモックオブジェクトを依存性注入できます。
-*   **柔軟性と拡張性:** 将来的に新しい分類基準を持つスクリーナーを追加する場合、それらも `CatPredicting` プロトコルに準拠させるだけで、既存のクライアントコードは最小限の変更で新しいスクリーナーを利用できます。
+`CatScreeningKit` の中心となるのは `CatScreenerProtocol` です。これは画像を受け取り、分類結果またはエラーを非同期で返す `screen` メソッドを定義します。クライアントコードは具体的な実装クラス（例: `ScaryCatScreener`）ではなく、このプロトコルに依存することが推奨されます。これにより、テスト時にモックオブジェクトを容易に注入でき、将来新しいスクリーナーを追加する際も、既存コードへの影響を最小限に抑えられます。
 
 ## 利用可能なスクリーナー
 
-現在、以下のスクリーナーが `CatScreeningKit` に含まれています。
-
 - **ScaryCatScreener:** 猫の画像が「怖い」か「怖くない」かを分類します。
-    - [詳細ドキュメント](./CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
+    - [詳細ドキュメント](CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
 
 今後、他の分類基準を持つスクリーナーが追加される可能性があります。
 
-## Error Handling
+## エラーハンドリング
 
-`predict` メソッドは `Result<(label: String, confidence: Float), PredictionError>` を返します。失敗時には `PredictionError` で詳細なエラー内容を示します。 
+`screen` メソッドは `Result<(label: String, confidence: Float), PredictionError>` を返します。失敗時には `PredictionError` で詳細なエラー内容を示します。 
