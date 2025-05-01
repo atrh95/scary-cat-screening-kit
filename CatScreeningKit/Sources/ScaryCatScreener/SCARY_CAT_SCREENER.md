@@ -4,7 +4,7 @@
 
 ## 概要
 
-`ScaryCatScreener` は `CatPredicting` プロトコルに準拠し、同梱の `ScaryCatScreener.mlmodel` を使用して、与えられた猫の画像が「怖い」か「怖くない」かを分類します。
+`ScaryCatScreener` は `CatScreener` プロトコルに準拠し、同梱の `ScaryCatScreener.mlmodel` を使用して、与えられた猫の画像が「怖い」か「怖くない」かを分類します。
 
 ## 使用方法 (Usage)
 
@@ -35,16 +35,15 @@ guard let sharedScreener = ScaryCatScreener.shared else {
 }
 // sharedScreener を使用
 ```
-**注意:** テスト容易性の観点からは、可能な限り `init?` を使用した依存性注入を推奨します。
 
 ### 3. 予測の実行
 
-`predict` メソッドを `UIImage` インスタンスで呼び出します。
+`screen` メソッドを `UIImage` インスタンスで呼び出します。
 
 ```swift
 guard let image = yourUIImage else { return } // 有効な UIImage を用意
 
-screener.predict(image: image, minConfidence: 0.75) { result in
+screener.screen(image: image, minConfidence: 0.75) { result in
     DispatchQueue.main.async { // UI更新はメインスレッドで
         switch result {
         case .success(let prediction):
@@ -60,5 +59,5 @@ screener.predict(image: image, minConfidence: 0.75) { result in
 
 ## 使用モデル
 
-- `CatScreeningKit/Sources/ScaryCatScreener/Resource` ディレクトリ内の `ScaryCatScreener.mlmodel` が利用されます。
+- `CatScreeningKit/Sources/ScaryCatScreener/Resources` ディレクトリ内の `ScaryCatScreener.mlmodel` が利用されます。
 - このモデルはビルド時にコンパイルされ、パッケージに含まれます。 
