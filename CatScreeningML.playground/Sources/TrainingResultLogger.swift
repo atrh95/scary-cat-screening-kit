@@ -1,20 +1,13 @@
 import Foundation
 
 public enum TrainingResultLogger {
-
     /// トレーニング結果を指定されたパスにMarkdownファイルとして保存する
     /// - Parameters:
     ///   - result: トレーニング結果のタプル
     ///   - trainer: 使用されたトレーナーのインスタンス
     ///   - modelOutputPath: 保存されたモデルファイルのフルパス
     public static func saveResultToFile(
-        result: (
-            trainingAccuracy: Double, validationAccuracy: Double,
-            trainingError: Double, validationError: Double,
-            trainingDuration: TimeInterval,
-            modelOutputPath: String, trainingDataPath: String, // modelOutputPathは不要になる
-            classLabels: [String] // resultにclassLabelsが含まれるように変更
-        ),
+        result: TrainingResult,
         trainer: ScreeningTrainerProtocol, // Trainerから modelName を取得
         modelAuthor: String, // メタデータも引数で受け取る
         modelDescription: String,
@@ -80,4 +73,4 @@ public enum TrainingResultLogger {
             print("--- ここまで --- ")
         }
     }
-} 
+}

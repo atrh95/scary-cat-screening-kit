@@ -1,5 +1,5 @@
-import PlaygroundSupport
 import Foundation // FileManagerを使うために追加
+import PlaygroundSupport
 
 // モデルのトレーニングのような非同期処理が完了するのを許可します。
 PlaygroundPage.current.needsIndefiniteExecution = true

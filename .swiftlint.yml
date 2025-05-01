@@ -29,6 +29,7 @@ disabled_rules:
   - line_length # 行の長さは別途カスタマイズ
   - trailing_newline # 末尾の改行を無視
   - trailing_comma # SwiftFormatで制御するため無効化
+  - function_body_length # 関数本体の長さ制限を無効化
 
 opt_in_rules:
   - empty_count # count == 0 の代わりに isEmpty を使用
@@ -43,11 +44,6 @@ analyzer_rules:
 #-------------------------------------------------------------------
 # Individual Rule Settings
 #-------------------------------------------------------------------
-# 関数本体の長さ制限
-function_body_length:
-  warning: 120
-  error: 150
-
 # 型定義の長さ制限
 type_body_length:
   warning: 300

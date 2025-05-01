@@ -23,8 +23,8 @@ public final class ScaryCatScreener: CatScreenerProtocol {
         }
         do {
             let mlModel = try MLModel(contentsOf: url)
-            self.model = ScaryCatScreeningML(model: mlModel) // Keep the specific model type internally
-            self.visionModel = try VNCoreMLModel(for: mlModel)
+            model = ScaryCatScreeningML(model: mlModel) // Keep the specific model type internally
+            visionModel = try VNCoreMLModel(for: mlModel)
             print("ScaryCatScreener initialized successfully.")
         } catch {
             print("Error initializing model: \(error)")
@@ -48,8 +48,14 @@ public final class ScaryCatScreener: CatScreenerProtocol {
             return
         }
 
+        // Ensure the vision model is available
+        guard let visionModel else {
+            completion(.failure(.modelNotLoaded))
+            return
+        }
+
         // Create a Vision request using the loaded model
-        let request = VNCoreMLRequest(model: visionModel!) { request, error in
+        let request = VNCoreMLRequest(model: visionModel) { request, error in
             // Handle potential errors during the request processing
             if let error {
                 completion(.failure(.processingError(error)))
@@ -87,9 +93,9 @@ public final class ScaryCatScreener: CatScreenerProtocol {
     // MARK: - Private Helper
 
     private func processObservations(
-        for request: VNRequest,
-        error: Error?,
-        completion: @escaping (Result<(label: String, confidence: Float), PredictionError>) -> Void
+        for _: VNRequest,
+        error _: Error?,
+        completion _: @escaping (Result<(label: String, confidence: Float), PredictionError>) -> Void
     ) {
         // ... rest of the method implementation ...
     }

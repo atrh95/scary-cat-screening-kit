@@ -1,9 +1,8 @@
-import Foundation
 import CoreML
 import CreateML
+import Foundation
 
 public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
-    
     public var modelName: String { "ScaryCatScreeningML" }
     public var dataDirectoryName: String { "ScaryCatScreenerData" }
     public var customOutputDirPath: String { "OutputModels/ScaryCatScreeningML" }
@@ -17,17 +16,12 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
 
     public init() {}
 
-    public func train(author: String, shortDescription: String, version: String) -> (
-        trainingAccuracy: Double, validationAccuracy: Double,
-        trainingError: Double, validationError: Double,
-        trainingDuration: TimeInterval,
-        modelOutputPath: String, trainingDataPath: String,
-        classLabels: [String]
-    )? {
+    public func train(author: String, shortDescription: String, version: String) -> TrainingResult? {
         let resourcesPath = resourcesDirectoryPath
         let resourcesDir = URL(fileURLWithPath: resourcesPath)
         let trainingDataParentDir = resourcesDir.appendingPathComponent(dataDirectoryName)
 
+        // --- Output Directory Setup ---
         var playgroundRoot = URL(fileURLWithPath: #filePath)
         playgroundRoot.deleteLastPathComponent()
         playgroundRoot.deleteLastPathComponent()
@@ -38,7 +32,7 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
         let customPath = customOutputDirPath
         if !customPath.isEmpty {
             let customURL = URL(fileURLWithPath: customPath)
-            if customURL.isFileURL && customPath.hasPrefix("/") {
+            if customURL.isFileURL, customPath.hasPrefix("/") {
                 baseTargetOutputDir = customURL
             } else {
                 baseTargetOutputDir = baseOutputDir.appendingPathComponent(customPath)
@@ -69,41 +63,47 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
         } while fileManager.fileExists(atPath: finalOutputDir.path)
 
         do {
-             try fileManager.createDirectory(at: finalOutputDir, withIntermediateDirectories: false, attributes: nil)
-             print("💾 結果保存ディレクトリ: \(finalOutputDir.path)")
+            try fileManager.createDirectory(at: finalOutputDir, withIntermediateDirectories: false, attributes: nil)
+            print("💾 結果保存ディレクトリ: \(finalOutputDir.path)")
         } catch {
-             print("❌ エラー: 結果保存ディレクトリの作成に失敗しました: \(finalOutputDir.path) - \(error.localizedDescription)")
-             return nil
+            print("❌ エラー: 結果保存ディレクトリの作成に失敗しました: \(finalOutputDir.path) - \(error.localizedDescription)")
+            return nil
         }
+        // --- End Output Directory Setup ---
 
         print("🚀 \(modelName)のトレーニングを開始します...")
 
-        return executeTrainingCore(trainingDataParentDir: trainingDataParentDir, outputDir: finalOutputDir,
-                                 author: author, shortDescription: shortDescription, version: version)
+        return executeTrainingCore(
+            trainingDataParentDir: trainingDataParentDir,
+            outputDir: finalOutputDir,
+            author: author,
+            shortDescription: shortDescription,
+            version: version
+        )
     }
 
-    private func executeTrainingCore(trainingDataParentDir: URL, outputDir: URL,
-                                     author: String, shortDescription: String, version: String) -> (
-        trainingAccuracy: Double, validationAccuracy: Double,
-        trainingError: Double, validationError: Double,
-        trainingDuration: TimeInterval,
-        modelOutputPath: String, trainingDataPath: String,
-        classLabels: [String]
-    )? {
+    private func executeTrainingCore(
+        trainingDataParentDir: URL,
+        outputDir: URL,
+        author: String,
+        shortDescription: String,
+        version: String
+    ) -> TrainingResult? {
         guard FileManager.default.fileExists(atPath: trainingDataParentDir.path) else {
             print("❌ エラー: \(modelName)のトレーニングデータ親ディレクトリが見つかりません: \(trainingDataParentDir.path)")
             return nil
         }
 
         do {
-            let _ = try FileManager.default.contentsOfDirectory(atPath: trainingDataParentDir.path)
+            _ = try FileManager.default.contentsOfDirectory(atPath: trainingDataParentDir.path)
         } catch {
             print("⚠️ 警告: トレーニングデータ親ディレクトリの内容をリストできませんでした: \(error)")
         }
 
         let trainingDataSource = MLImageClassifier.DataSource.labeledDirectories(at: trainingDataParentDir)
-        
+
         do {
+            // --- Training and Evaluation ---
             let startTime = Date()
 
             let model = try MLImageClassifier(trainingData: trainingDataSource)
@@ -124,6 +124,7 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
             let validationErrorStr = String(format: "%.2f", validationError * 100)
             let validationAccStr = String(format: "%.2f", validationAccuracy)
             print("  📈 検証エラー率: \(validationErrorStr)% (正解率: \(validationAccStr)%)")
+            // --- End Training and Evaluation ---
 
             let metadata = MLModelMetadata(
                 author: author,
@@ -138,7 +139,7 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
             try model.write(to: outputModelURL, metadata: metadata)
             print("✅ \(modelName)は正常に保存されました。")
 
-            // クラスラベルを取得 (プロパティからロジックを移動)
+            // --- Get Class Labels ---
             let classLabels: [String]
             do {
                 let contents = try FileManager.default.contentsOfDirectory(atPath: trainingDataParentDir.path)
@@ -146,14 +147,16 @@ public class ScaryCatScreenerTrainer: ScreeningTrainerProtocol {
                 classLabels = contents.filter { item in
                     var isDirectory: ObjCBool = false
                     let fullPath = trainingDataParentDir.appendingPathComponent(item).path
-                    return !item.hasPrefix(".") && FileManager.default.fileExists(atPath: fullPath, isDirectory: &isDirectory) && isDirectory.boolValue
+                    return !item.hasPrefix(".") && FileManager.default
+                        .fileExists(atPath: fullPath, isDirectory: &isDirectory) && isDirectory.boolValue
                 }.sorted()
             } catch {
                 print("⚠️ クラスラベルの取得に失敗しました: \(trainingDataParentDir.path) - \(error.localizedDescription)")
                 classLabels = [] // エラー時は空配列
             }
+            // --- End Get Class Labels ---
 
-            return (
+            return TrainingResult(
                 trainingAccuracy: trainingAccuracy,
                 validationAccuracy: validationAccuracy,
                 trainingError: trainingError,
