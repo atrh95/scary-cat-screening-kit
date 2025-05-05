@@ -1,11 +1,10 @@
 import CoreML
+import CSKShared
 import UIKit
 import Vision
-import CSKShared
 
 /// ScaryCatScreenerモデルをロードし、予測を実行するクラス
 public final class ScaryCatScreener: CatScreenerProtocol {
-
     private let model: ScaryCatScreeningML?
     private var visionModel: VNCoreMLModel?
     public var minConfidence: Float = 0.7
@@ -60,7 +59,10 @@ public final class ScaryCatScreener: CatScreenerProtocol {
                 if topResult.confidence >= self.minConfidence {
                     continuation.resume(returning: (label: topResult.identifier, confidence: topResult.confidence))
                 } else {
-                    continuation.resume(throwing: PredictionError.lowConfidence(threshold: self.minConfidence, actual: topResult.confidence))
+                    continuation.resume(throwing: PredictionError.lowConfidence(
+                        threshold: self.minConfidence,
+                        actual: topResult.confidence
+                    ))
                 }
             }
 
