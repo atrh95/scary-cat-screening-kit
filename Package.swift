@@ -16,7 +16,8 @@ let package = Package(
     targets: [
         .target(
             name: "CatScreeningKit",
-            dependencies: ["ScaryCatScreener", "CSKShared"]
+            dependencies: ["ScaryCatScreener", "CSKShared"],
+            path: "CatScreeningKit/Sources/CatScreeningKit"
         ),
         .target(
             name: "ScaryCatScreener",
@@ -27,11 +28,13 @@ let package = Package(
             ]
         ),
         .target(
-            name: "CSKShared"
+            name: "CSKShared",
+            path: "CatScreeningKit/Sources/CSKShared"
         ),
         .testTarget(
             name: "CatScreeningKitTests",
-            dependencies: ["CatScreeningKit"]
+            dependencies: ["CatScreeningKit"],
+            path: "CatScreeningKit/Tests/ScaryCatScreenerTests"
         ),
     ],
     swiftLanguageVersions: [.v6],
