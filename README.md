@@ -4,38 +4,66 @@ Core MLモデルを使用した様々な猫の画像分類タスクを実行す�
 
 ## Requirements
 
-*   Swift 5.5+
+*   Swift 5.9+
 *   iOS 15.0+
 
-## ディレクトリ構成
+## インストール方法 (Swift Package Manager)
 
-```
-.
-├── .github/
-│   └── workflows/
-├── CatScreeningKit/
-│   ├── Sources/
-│   │   ├── CatScreeningKit/
-│   │   ├── CSKShared/
-│   │   └── Screeners/
-│   │       └── ScaryCatScreener/
-│   │           └── Resources/
-│   ├── Tests/
-│   │   └── ScaryCatScreenerTests/
-│   │       ├── NotScary/
-│   │       └── Scary/
-│   └── Package.swift
-├── CatScreeningML.playground/
-│   ├── Resources/
-│   │   └── ScaryCatScreenerData/
-│   │       ├── Not Scary/
-│   │       └── Scary/
-│   └── Sources/
-├── OutputModels/
-│   └── ScaryCatScreeningML/
-│       └── result_*/
-├── .gitignore
-└── README.md
+1. Xcode でプロジェクトを開き、「File」>「Add Packages...」を選択します。
+2. 検索バーにこのリポジトリの URL (`https://github.com/terrio32/cat-screening-kit`) を貼り付けます。
+3. 「Dependency Rule」でバージョンルールを選択し（例: "Up to Next Major Version" で `1.0.0` を指定）、「Add Package」をクリックします。
+4. ターゲットの「Frameworks, Libraries, and Embedded Content」セクションに `CatScreeningKit` が追加されていることを確認します。
+
+## 使い方
+
+```swift
+import SwiftUI
+import CatScreeningKit
+
+struct ContentView: View {
+    // 利用したいスクリーナのインスタンスを作成
+    // 例: ScaryCatScreener
+    let screener: any CatScreenerProtocol = ScaryCatScreener()
+
+    @State private var image: UIImage? = UIImage(named: "cat_image") // 判定したい画像
+    @State private var resultText: String = "判定中..."
+
+    var body: some View {
+        VStack {
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+            }
+            Text(resultText)
+                .padding()
+            Button("猫を判定") {
+                Task {
+                    await performScreening()
+                }
+            }
+        }
+    }
+
+    private func performScreening() async {
+        guard let image = image else {
+            resultText = "画像がありません"
+            return
+        }
+
+        resultText = "判定中..."
+        do {
+            let result = try await screener.screen(image: image)
+            // result は (label: String, confidence: Float) のタプル
+            resultText = "結果: \(result.label) (信頼度: \(String(format: "%.2f", result.confidence * 100))%)"
+        } catch let error as PredictionError {
+            resultText = "エラー: \(error.localizedDescription)"
+        } catch {
+            resultText = "予期せぬエラー: \(error.localizedDescription)"
+        }
+    }
+}
 ```
 
 ## 設計
@@ -45,25 +73,36 @@ Core MLモデルを使用した様々な猫の画像分類タスクを実行す�
 ## 利用可能なスクリーナ
 
 ### ScaryCatScreener
-[詳細はこちら](CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
+[詳細はこちら](Sources/Screeners/ScaryCatScreener/SCARY_CAT_SCREENER.md)
+(内部で使用している Core ML モデル: `ScaryCatScreeningML.mlmodel`)
 
-## モデルトレーニング用Playground (`CatScreeningML.playground`)
+## ディレクトリ構成
 
-リポジトリには `ScaryCatScreeningML.mlmodel` のトレーニングを実行・試行するための `CatScreeningML.playground` が含まれています。
+```
+.
+├── .cursor/
+├── .github/
+│   └── workflows/
+├── Sources/
+│   ├── CatScreeningKit/
+│   ├── CSKShared/
+│   └── ScaryCatScreener/
+│       └── Resources/
+├── Tests/
+│   └── ScaryCatScreenerTests/
+│       ├── NotScary/
+│       └── Scary/
+├── .gitignore
+├── .swiftformat
+├── .swiftlint.yml
+├── LICENSE
+├── Mintfile
+├── Package.swift
+└── README.md
+```
 
-### Playgroundの実行
-Xcodeで `CatScreeningKit` プロジェクトを開き、ナビゲーターから `CatScreeningML.playground` を選択して実行（▶︎）します。`Contents.swift` が `Sources` 内の `ScaryCatScreenerTrainer` を使用してトレーニングを開始します。進捗、結果、エラー、モデル保存先はコンソールに出力されます。
+## モデルのトレーニングについて
 
-### トレーニングの設定
-*   **パスと名前:** `modelName`, `dataDirectoryName`, `customOutputDirPath`, `resourcesDirectoryPath` で、モデル名、データディレクトリ名、出力先、リソースディレクトリのパスを指定します。
-*   **トレーニングパラメータ:** `executeTrainingCore` メソッド内の `MLImageClassifier.ModelParameters` で、データ拡張 (`augmentation`) や最大反復回数 (`maxIterations`) など、モデルの学習プロセスに影響を与えるパラメータを設定します。
-*   **モデルメタデータ:** `Contents.swift` 内で定義されたメタデータ（作成者 `author`, 概要 `shortDescription`, バージョン `version`）が、`train` メソッドを通じてモデルファイルに埋め込まれます。
+このライブラリで使用されている Core ML モデルのトレーニング方法や、モデルのカスタマイズについては、以下の別リポジトリを参照してください。
 
-### トレーニング用のデータ
-画像データは `CatScreeningML.playground/Resources/ScaryCatScreenerData/` 内に配置します。クラス名（例: `Scary`, `Not Scary`）と同じ名前のサブディレクトリを作成し、画像を入れます。
-
-### 出力モデル
-トレーニングが成功すると、`customOutputDirPath` で指定されたディレクトリ（デフォルト: `OutputModels/ScaryCatScreeningML/`）内に `result_N`（Nは連番）というサブディレクトリが作成され、その中に `.mlmodel` ファイルが生成されます。このモデルファイルには、トレーニング時に指定されたメタデータ（作成者、概要、バージョン）が付与されています。生成されたモデルを `CatScreeningKit` で使用するには、`CatScreeningKit/Sources/ScaryCatScreener/Resource/` にコピーしてください。
-
-### 精度改善
-モデル精度改善のヒントは [AccuracyImprovementTips.md](CatScreeningML.playground/Sources/AccuracyImprovementTips.md) を参照してください。
+➡️ **[terrio32/train-cat-screening-ml](https://github.com/terrio32/train-cat-screening-ml)**

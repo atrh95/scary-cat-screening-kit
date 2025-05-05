@@ -21,12 +21,7 @@ UserInterfaceState.xcuserstate
 
 # Build artifacts
 DerivedData/
-Build/
-
-# Generated ML models
-# OutputModels/  <- コメントアウトまたは削除 (ディレクトリ自体は無視しない)
-
-# Ignore contents of specific model output subdirectories, but keep the dir
+Build/d
 
 *.mlmodel # 他の場所のmlmodelも無視する場合は残す
 
@@ -38,11 +33,7 @@ Packages/
 xcuserdata/
 
 # Swift Package Manager - Cache
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/
 
 # Credentials
 .netrc
-
-# Swift Package Manager
-CatScreeningKit/.swiftpm/

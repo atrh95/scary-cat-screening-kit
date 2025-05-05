@@ -1,4 +1,5 @@
 // swift-tools-version: 6.0
+// The swift-tools-version は、このパッケージのビルドに必要な Swift の最小バージョンを宣言
 
 import PackageDescription
 
@@ -22,7 +23,7 @@ let package = Package(
         .target(
             name: "ScaryCatScreener",
             dependencies: ["CSKShared"],
-            path: "Sources/Screeners/ScaryCatScreener",
+            path: "Sources/ScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
             ]
@@ -37,5 +38,5 @@ let package = Package(
             path: "Tests/ScaryCatScreenerTests"
         ),
     ],
-    swiftLanguageVersions: [.v6]
+    swiftLanguageModes: [.v6]
 )
