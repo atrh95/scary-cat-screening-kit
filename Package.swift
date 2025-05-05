@@ -17,26 +17,25 @@ let package = Package(
         .target(
             name: "CatScreeningKit",
             dependencies: ["ScaryCatScreener", "CSKShared"],
-            path: "CatScreeningKit/Sources/CatScreeningKit"
+            path: "Sources/CatScreeningKit"
         ),
         .target(
             name: "ScaryCatScreener",
             dependencies: ["CSKShared"],
-            path: "CatScreeningKit/Sources/Screeners/ScaryCatScreener",
+            path: "Sources/Screeners/ScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
             ]
         ),
         .target(
             name: "CSKShared",
-            path: "CatScreeningKit/Sources/CSKShared"
+            path: "Sources/CSKShared"
         ),
         .testTarget(
             name: "CatScreeningKitTests",
             dependencies: ["CatScreeningKit"],
-            path: "CatScreeningKit/Tests/ScaryCatScreenerTests"
+            path: "Tests/ScaryCatScreenerTests"
         ),
     ],
-    swiftLanguageVersions: [.v6],
-    exclude: ["CatScreeningML.playground"]
+    swiftLanguageVersions: [.v6]
 )
