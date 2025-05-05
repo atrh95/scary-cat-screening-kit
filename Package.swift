@@ -21,7 +21,7 @@ let package = Package(
         .target(
             name: "ScaryCatScreener",
             dependencies: ["CSKShared"],
-            path: "Sources/Screeners/ScaryCatScreener",
+            path: "CatScreeningKit/Sources/Screeners/ScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
             ]
@@ -34,5 +34,6 @@ let package = Package(
             dependencies: ["CatScreeningKit"]
         ),
     ],
-    swiftLanguageVersions: [.v6]
+    swiftLanguageVersions: [.v6],
+    exclude: ["CatScreeningML.playground"]
 )
