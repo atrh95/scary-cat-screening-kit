@@ -50,7 +50,7 @@ Task {
         // screener.minConfidence = 0.8 // 例: 80%
 
         let prediction = try await screener.screen(image: image)
-        print("予測ラベル: \\(prediction.label), 信頼度: \(prediction.confidence)")
+        print("予測ラベル: \(prediction.label), 信頼度: \(prediction.confidence)")
         // 予測結果に基づいた処理 (UI更新は @MainActor などでメインスレッドを保証)
 
     } catch let error as PredictionError {

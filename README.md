@@ -73,8 +73,7 @@ struct ContentView: View {
 ## 利用可能なスクリーナ
 
 ### ScaryCatScreener
-[詳細はこちら](Sources/Screeners/ScaryCatScreener/SCARY_CAT_SCREENER.md)
-(内部で使用している Core ML モデル: `ScaryCatScreeningML.mlmodel`)
+[詳細はこちら](./Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
 
 ## ディレクトリ構成
 

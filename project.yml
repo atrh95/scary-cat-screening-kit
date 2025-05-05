@@ -33,6 +33,7 @@ targets:
       - path: SampleApp
     dependencies:
       - package: CatScreeningKit
+        product: CatScreeningKit
     info:
       path: SampleApp/Info.plist
       properties:
