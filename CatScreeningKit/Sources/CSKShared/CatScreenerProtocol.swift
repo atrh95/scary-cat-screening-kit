@@ -8,9 +8,7 @@ public protocol CatScreenerProtocol {
     /// 画像のスクリーニング（分類）を実行します。
     /// - Parameters:
     ///   - image: スクリーニング対象の画像
-    ///   - completion: スクリーニング結果またはエラーを受け取るクロージャ
-    func screen(
-        image: UIImage,
-        completion: @escaping (Result<(label: String, confidence: Float), PredictionError>) -> Void
-    )
+    /// - Returns: 予測結果 (ラベルと信頼度) のタプル。
+    /// - Throws: 予測中にエラーが発生した場合、`PredictionError` をスローします。
+    func screen(image: UIImage) async throws -> (label: String, confidence: Float)
 }

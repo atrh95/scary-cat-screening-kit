@@ -25,12 +25,8 @@ Build/
 
 # Generated ML models
 # OutputModels/  <- コメントアウトまたは削除 (ディレクトリ自体は無視しない)
-/OutputModels/* # OutputModelsの中身を無視
-!/OutputModels/.gitkeep # .gitkeepは無視しない
 
 # Ignore contents of specific model output subdirectories, but keep the dir
-/OutputModels/ScaryCatScreeningML/*
-!/OutputModels/ScaryCatScreeningML/.gitkeep
 
 *.mlmodel # 他の場所のmlmodelも無視する場合は残す
 
@@ -47,3 +43,6 @@ xcuserdata/
 
 # Credentials
 .netrc
+
+# Swift Package Manager
+CatScreeningKit/.swiftpm/
