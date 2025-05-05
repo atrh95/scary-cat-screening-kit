@@ -5,6 +5,18 @@ import Vision
 
 /// ScaryCatScreenerモデルをロードし、予測を実行するクラス
 public final class ScaryCatScreener: CatScreenerProtocol {
+    /// エラードメイン
+    public static let errorDomain = "com.example.ScaryCatScreener.ErrorDomain"
+
+    // Error codes
+    private enum ErrorCode: Int {
+        case invalidImage = 1
+        case modelNotLoaded = 2
+        case processingError = 3
+        case noResults = 4
+        case lowConfidence = 5
+    }
+
     private let model: ScaryCatScreeningML?
     private var visionModel: VNCoreMLModel?
     public var minConfidence: Float = 0.7
@@ -32,14 +44,18 @@ public final class ScaryCatScreener: CatScreenerProtocol {
     /// - Parameters:
     ///   - image: 入力UIImage。
     /// - Returns: 予測結果 (ラベルと信頼度) のタプル。
-    /// - Throws: 予測中にエラーが発生した場合、`PredictionError` をスローします。
+    /// - Throws: 予測中にエラーが発生した場合、`Error` をスローします。
     public func screen(image: UIImage) async throws -> (label: String, confidence: Float) {
         guard let cgImage = image.cgImage else {
-            throw PredictionError.invalidImage
+            throw NSError(domain: ScaryCatScreener.errorDomain,
+                          code: ErrorCode.invalidImage.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: "入力された画像が無効です。"])
         }
 
         guard let visionModel else {
-            throw PredictionError.modelNotLoaded
+            throw NSError(domain: ScaryCatScreener.errorDomain,
+                          code: ErrorCode.modelNotLoaded.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: "CoreMLモデルがロードされていません。"])
         }
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -57,7 +73,11 @@ public final class ScaryCatScreener: CatScreenerProtocol {
                 if let error {
                     print("DEBUG: VNCoreMLRequest completion error: \(error)")
                     // エラー発生時は resumeOnce を介して failure を返す
-                    resumeOnce(.failure(PredictionError.processingError(error)))
+                    let nsError = NSError(domain: ScaryCatScreener.errorDomain,
+                                          code: ErrorCode.processingError.rawValue,
+                                          userInfo: [NSLocalizedDescriptionKey: "画像処理中にエラーが発生しました: \(error.localizedDescription)",
+                                                     NSUnderlyingErrorKey: error])
+                    resumeOnce(.failure(nsError))
                     return
                 }
 
@@ -66,7 +86,10 @@ public final class ScaryCatScreener: CatScreenerProtocol {
                 else {
                     print("DEBUG: VNCoreMLRequest no results.")
                     // 結果がない場合も resumeOnce を介して failure を返す
-                    resumeOnce(.failure(PredictionError.noResults))
+                    let nsError = NSError(domain: ScaryCatScreener.errorDomain,
+                                          code: ErrorCode.noResults.rawValue,
+                                          userInfo: [NSLocalizedDescriptionKey: "予測結果が得られませんでした。"])
+                    resumeOnce(.failure(nsError))
                     return
                 }
 
@@ -77,10 +100,10 @@ public final class ScaryCatScreener: CatScreenerProtocol {
                 } else {
                     print("DEBUG: VNCoreMLRequest low confidence: \(topResult.confidence) < \(self.minConfidence)")
                     // 信頼度が低い場合も resumeOnce を介して failure を返す
-                    resumeOnce(.failure(PredictionError.lowConfidence(
-                        threshold: self.minConfidence,
-                        actual: topResult.confidence
-                    )))
+                    let nsError = NSError(domain: ScaryCatScreener.errorDomain,
+                                          code: ErrorCode.lowConfidence.rawValue,
+                                          userInfo: [NSLocalizedDescriptionKey: "予測の信頼度が低すぎます (閾値: \(self.minConfidence), 実際: \(topResult.confidence))"])
+                    resumeOnce(.failure(nsError))
                 }
             }
             request.usesCPUOnly = true // デバッグ用にCPU推論を強制 (後で必要に応じて削除)
@@ -96,7 +119,11 @@ public final class ScaryCatScreener: CatScreenerProtocol {
             } catch {
                 print("DEBUG: handler.perform threw error: \(error)")
                 // perform 自体がエラーを投げた場合、resumeOnce を介して failure を返す
-                resumeOnce(.failure(PredictionError.processingError(error)))
+                let nsError = NSError(domain: ScaryCatScreener.errorDomain,
+                                      code: ErrorCode.processingError.rawValue,
+                                      userInfo: [NSLocalizedDescriptionKey: "画像処理中にエラーが発生しました: \(error.localizedDescription)",
+                                                 NSUnderlyingErrorKey: error])
+                resumeOnce(.failure(nsError))
             }
         }
     }

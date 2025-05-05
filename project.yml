@@ -3,6 +3,10 @@ options:
   bundleIdPrefix: com.akitorahayashi.CatScreeningKit
 path: CatScreeningKit.xcodeproj
 
+packages:
+  CatScreeningKit:
+    path: .
+
 schemes:
   SampleApp:
     build:
@@ -27,6 +31,8 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: SampleApp
+    dependencies:
+      - package: CatScreeningKit
     info:
       path: SampleApp/Info.plist
       properties:
