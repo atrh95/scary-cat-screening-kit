@@ -23,10 +23,7 @@ let package = Package(
         .target(
             name: "ScaryCatScreener",
             dependencies: ["CSKShared"],
-            path: "Sources/ScaryCatScreener",
-            resources: [
-                .process("Resources/ScaryCatScreeningML.mlmodel"),
-            ]
+            path: "Sources/ScaryCatScreener"
         ),
         .target(
             name: "CSKShared",

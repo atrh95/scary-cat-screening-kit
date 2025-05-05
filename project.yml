@@ -1,0 +1,38 @@
+name: CatScreeningKit
+options:
+  bundleIdPrefix: com.akitorahayashi.CatScreeningKit
+path: CatScreeningKit.xcodeproj
+
+schemes:
+  SampleApp:
+    build:
+      targets:
+        SampleApp: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: []
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+targets:
+  SampleApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: SampleApp
+    info:
+      path: SampleApp/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).SampleApp
