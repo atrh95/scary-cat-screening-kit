@@ -2,39 +2,50 @@
 
 Core MLモデルを使用した様々な猫の画像分類タスクを実行するためのSwift Packageです。
 
+## Requirements
+
+*   Swift 5.5+
+*   iOS 15.0+
+
 ## ディレクトリ構成
 
 ```
 .
+├── .github/
+│   └── workflows/
 ├── CatScreeningKit/
 │   ├── Sources/
-│   │   └── ScaryCatScreener/
-│   │       ├── Resource/
-│   │       │   └── ScaryCatScreeningML.mlmodel
-│   │       └── ScaryCatScreener.swift
+│   │   ├── CatScreeningKit/
+│   │   ├── CSKShared/
+│   │   └── Screeners/
+│   │       └── ScaryCatScreener/
+│   │           └── Resources/
 │   ├── Tests/
 │   │   └── ScaryCatScreenerTests/
 │   │       ├── NotScary/
-│   │       ├── Scary/
-│   │       └── ScaryCatScreenerTests.swift
+│   │       └── Scary/
 │   └── Package.swift
-│
 ├── CatScreeningML.playground/
-│   ├── Contents.swift
 │   ├── Resources/
 │   │   └── ScaryCatScreenerData/
 │   │       ├── Not Scary/
 │   │       └── Scary/
 │   └── Sources/
-│       ├── ScaryCatScreenerTrainer.swift
-│       ├── ScreeningTrainerProtocol.swift
-│       └── AccuracyImprovementTips.md
 ├── OutputModels/
 │   └── ScaryCatScreeningML/
-│
+│       └── result_*/
 ├── .gitignore
 └── README.md
 ```
+
+## 設計
+
+`CatScreeningKit` の中心となるのは `CatScreenerProtocol` です。これは `minConfidence` プロパティと、画像を受け取り、分類結果またはエラーを `async` で返す `screen` メソッドを定義します。クライアントコードは具体的な実装クラス（例: `ScaryCatScreener`）のインスタンスを直接生成するか、このプロトコルに依存することにより、テスト時にモックオブジェクトを容易に注入でき、新しいスクリーナを追加する際も既存コードへの影響を抑えられます。
+
+## 利用可能なスクリーナ
+
+### ScaryCatScreener
+[詳細はこちら](CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md)
 
 ## モデルトレーニング用Playground (`CatScreeningML.playground`)
 
@@ -56,14 +67,3 @@ Xcodeで `CatScreeningKit` プロジェクトを開き、ナビゲーターか�
 
 ### 精度改善
 モデル精度改善のヒントは [AccuracyImprovementTips.md](CatScreeningML.playground/Sources/AccuracyImprovementTips.md) を参照してください。
-
-## 設計
-
-`CatScreeningKit` の中心となるのは `CatScreenerProtocol` です。これは画像を受け取り、分類結果またはエラーを非同期で返す `screen` メソッドを定義します。クライアントコードは具体的な実装クラス（例: `ScaryCatScreener`）ではなく、このプロトコルに依存することにより、テスト時にモックオブジェクトを容易に注入でき、新しいスクリーナを追加する際も既存コードへの影響を抑えられます。
-
-## 利用可能なスクリーナー
-
-### ScaryCatScreener
-
-猫の画像が「怖い」か「怖くない」かを分類します。
-詳細は [SCARY_CAT_SCREENER.md](CatScreeningKit/Sources/ScaryCatScreener/SCARY_CAT_SCREENER.md) を参照してください。
