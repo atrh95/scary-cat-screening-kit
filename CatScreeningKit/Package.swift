@@ -1,5 +1,4 @@
-// swift-tools-version: 6.0
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version: 5.10
 
 import PackageDescription
 
@@ -9,22 +8,30 @@ let package = Package(
         .iOS(.v15),
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "ScaryCatScreener",
-            targets: ["ScaryCatScreener"]
+            name: "CatScreeningKit",
+            targets: ["CatScreeningKit"]
         ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
+        .target(
+            name: "CatScreeningKit",
+            dependencies: ["ScaryCatScreener", "CSKShared"]
+        ),
         .target(
             name: "ScaryCatScreener",
-            dependencies: []
+            dependencies: ["CSKShared"],
+            path: "Sources/Screeners/ScaryCatScreener",
+            resources: [
+                .process("Resources/ScaryCatScreeningML.mlmodel")
+            ]
+        ),
+        .target(
+            name: "CSKShared"
         ),
         .testTarget(
-            name: "ScaryCatScreenerTests",
-            dependencies: ["ScaryCatScreener"]
+            name: "CatScreeningKitTests",
+            dependencies: ["CatScreeningKit"]
         ),
     ]
 )
