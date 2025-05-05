@@ -19,7 +19,7 @@ public final class ScaryCatScreener: CatScreenerProtocol {
             let mlModel = try MLModel(contentsOf: url)
             model = ScaryCatScreeningML(model: mlModel)
             visionModel = try VNCoreMLModel(for: mlModel)
-            print("ScaryCatPredictor initialized successfully.")
+            print("ScaryCatScreener initialized successfully.")
         } catch {
             print("Error initializing model: \(error)")
             return nil
@@ -43,34 +43,49 @@ public final class ScaryCatScreener: CatScreenerProtocol {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
+            // resumeが一度だけ呼ばれるようにするためのフラグとヘルパー
+            var resumed = false
+            let resumeOnce: (Result<(label: String, confidence: Float), Error>) -> Void = { result in
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(with: result)
+            }
+
             let request = VNCoreMLRequest(model: visionModel) { request, error in
                 if let error {
-                    continuation.resume(throwing: PredictionError.processingError(error))
+                    // エラー発生時は resumeOnce を介して failure を返す
+                    resumeOnce(.failure(PredictionError.processingError(error)))
                     return
                 }
 
                 guard let results = request.results as? [VNClassificationObservation],
                       let topResult = results.first
                 else {
-                    continuation.resume(throwing: PredictionError.noResults)
+                    // 結果がない場合も resumeOnce を介して failure を返す
+                    resumeOnce(.failure(PredictionError.noResults))
                     return
                 }
 
                 if topResult.confidence >= self.minConfidence {
-                    continuation.resume(returning: (label: topResult.identifier, confidence: topResult.confidence))
+                    // 成功時は resumeOnce を介して success を返す
+                    resumeOnce(.success((label: topResult.identifier, confidence: topResult.confidence)))
                 } else {
-                    continuation.resume(throwing: PredictionError.lowConfidence(
+                    // 信頼度が低い場合も resumeOnce を介して failure を返す
+                    resumeOnce(.failure(PredictionError.lowConfidence(
                         threshold: self.minConfidence,
                         actual: topResult.confidence
-                    ))
+                    )))
                 }
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             do {
                 try handler.perform([request])
+                // perform が成功した場合、resume は完了ハンドラに任せる
+                // ここで resumeOnce を呼ぶ必要はない
             } catch {
-                continuation.resume(throwing: PredictionError.processingError(error))
+                // perform 自体がエラーを投げた場合、resumeOnce を介して failure を返す
+                resumeOnce(.failure(PredictionError.processingError(error)))
             }
         }
     }
