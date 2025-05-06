@@ -38,52 +38,65 @@ public actor ScaryCatScreener {
 
     // MARK: - Screening Logic
 
-    /// 画像スクリーニング
+    /// 画像配列をスクリーニングし、安全な画像のみを元の順序で返す
     /// - Parameters:
-    ///   - image: 入力UIImage
+    ///   - images: 入力UIImageの配列
     ///   - probabilityThreshold: 信頼度の閾値 (デフォルト0.65)
-    /// - Returns: ScreeningReport (結果)
-    /// - Throws: 処理または予測エラー
-    public func screen(image: UIImage, probabilityThreshold: Float = 0.65) async throws -> ScreeningReport {
-        guard let cgImage = image.cgImage else {
-            print("[ScaryCatScreener] [ERROR] Failed to get CGImage.")
-            throw ScaryCatScreenerError.invalidImage
-        }
+    /// - Returns: 安全と判断されたUIImageの配列 (元の順序を保持)
+    /// - Throws: Visionリクエスト処理中の致命的なエラー
+    public func screen(images: [UIImage], probabilityThreshold: Float = 0.65) async throws -> [UIImage] {
+        var processingResults: [(originalImage: UIImage, isSafe: Bool)] = []
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        let request = VNCoreMLRequest(model: self.screeningModel)
-        request.usesCPUOnly = true
+        for image in images {
+            var isSafeForCurrentImage = true // デフォルトで安全と仮定
+            var currentImageAllObservations: [ClassResultTuple] = []
+            var currentImageDecisiveDetection: ClassResultTuple? = nil
 
-        var allObservations: [ClassResultTuple] = []
-        var decisiveDetection: ClassResultTuple? = nil
+            guard let cgImage = image.cgImage else {
+                print("[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image.")
+                isSafeForCurrentImage = false // CGImageにできないものは安全ではない
+                // この画像に対するレポート（空の検出結果）を出力
+                let reportForSkippedImage = ScreeningReport(decisiveDetection: nil, allClassifications: [])
+                reportForSkippedImage.printReport()
+                processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
+                continue // 次の画像の処理へ
+            }
 
-        do {
-            try handler.perform([request])
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            let request = VNCoreMLRequest(model: self.screeningModel)
+            request.usesCPUOnly = true
 
-            if let results = request.results as? [VNClassificationObservation] {
-                allObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
-                
-                decisiveDetection = allObservations.first { class_result_tuple in
-                    class_result_tuple.identifier.lowercased() != "safe" && class_result_tuple.confidence >= probabilityThreshold
+            do {
+                try handler.perform([request])
+                if let results = request.results as? [VNClassificationObservation] {
+                    currentImageAllObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
+                    currentImageDecisiveDetection = currentImageAllObservations.first { tuple in
+                        tuple.identifier.lowercased() != "safe" && tuple.confidence >= probabilityThreshold
+                    }
                 }
-            } else {
-                return ScreeningReport(decisiveDetection: nil, allClassifications: [])
+                // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
+            } catch {
+                print("[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate.")
+                // Visionリクエスト失敗はメソッド全体のエラーとする
+                throw ScaryCatScreenerError.predictionFailed(underlyingError: error)
+            }
+
+            // 各画像に対するレポートを作成し、コンソールに出力
+            let reportForCurrentImage = ScreeningReport(
+                decisiveDetection: currentImageDecisiveDetection,
+                allClassifications: currentImageAllObservations.sorted { $0.confidence > $1.confidence }
+            )
+            reportForCurrentImage.printReport()
+
+            if currentImageDecisiveDetection != nil {
+                isSafeForCurrentImage = false // 何か検出されたら安全ではない
             }
             
-            if allObservations.isEmpty {
-                return ScreeningReport(decisiveDetection: nil, allClassifications: [])
-            }
-
-        } catch {
-            print("[ScaryCatScreener] [ERROR] Vision request failed: \(error).")
-            throw ScaryCatScreenerError.predictionFailed(underlyingError: error)
+            processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
         }
-        
-        let report = ScreeningReport(
-            decisiveDetection: decisiveDetection,
-            allClassifications: allObservations.sorted { $0.confidence > $1.confidence }
-        )
 
-        return report
+        // 安全な画像のみを元の順序でフィルタリングして返す
+        let safeImages = processingResults.filter { $0.isSafe }.map { $0.originalImage }
+        return safeImages
     }
 }

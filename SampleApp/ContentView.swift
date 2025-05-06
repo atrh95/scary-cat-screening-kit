@@ -1,85 +1,99 @@
 import SwiftUI
+// import PhotosUI // PhotosPickerが不要になったためコメントアウトまたは削除
 import CatScreeningKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
+    // selectedPhotoItems は不要になったため削除
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            // Image 1
-            VStack(alignment: .center, spacing: 8) {
-                Text("Image 1 (Not Scary?)").font(.headline)
-                if viewModel.isLoading1 {
-                    ProgressView()
-                } else if let image = viewModel.image1 {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .cornerRadius(8)
-                } else {
-                    Text("Loading Image 1...")
-                        .foregroundColor(.gray)
-                        .font(.caption)
-                        .frame(height: 150)
+        NavigationView {
+            VStack(spacing: 16) {
+                Button(action: {
+                    viewModel.fetchAndScreenImagesFromCatAPI(count: 5) // 例として5枚取得
+                }) {
+                    Label("APIから猫画像を取得してスクリーニング", systemImage: "arrow.clockwise.icloud")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(viewModel.isLoading ? Color.gray : Color.cyan)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                // 結果リスト
-                ForEach(viewModel.results1, id: \.self) { result in
-                    Text(result)
-                        .font(.caption)
+                .disabled(viewModel.isLoading)
+                .padding(.horizontal)
+                .padding(.top)
+
+                // APIから取得した画像のプレビュー (旧selectedImagesの役割)
+                if !viewModel.fetchedImages.isEmpty {
+                    Text("取得した画像: \(viewModel.fetchedImages.count)枚")
+                        .font(.headline)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(viewModel.fetchedImages, id: \.self) { img in
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 100)
+                                    .cornerRadius(8)
+                                    .padding(.trailing, 4)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 }
-                if let error = viewModel.error1 {
-                    Text("Last Error: \(error)").foregroundColor(.red).font(.caption)
+                
+                if viewModel.isLoading {
+                    ProgressView("処理中...")
+                        .padding()
+                }
+
+                Text(viewModel.screeningSummary)
+                    .font(.body)
+                    .padding(.top)
+                    .multilineTextAlignment(.center)
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text("エラー: \(errorMessage)")
+                        .foregroundColor(.red)
+                        .font(.caption)
+                        .padding()
+                        .multilineTextAlignment(.center)
+                }
+
+                // 安全な画像の表示
+                if !viewModel.safeImagesForDisplay.isEmpty {
+                    Text("安全な画像 (".uppercased() + "\(viewModel.safeImagesForDisplay.count)枚)")
+                        .font(.headline)
+                        .padding(.top)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(viewModel.safeImagesForDisplay, id: \.self) { img in
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 150)
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.green, lineWidth: 3)
+                                    )
+                                    .padding(.trailing, 4)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                
+                Spacer()
+            }
+            .navigationTitle("Scary Cat Screener")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                    }
                 }
             }
-            .padding(.horizontal)
-
-            Divider()
-
-            // Image 2
-            VStack(alignment: .center, spacing: 8) {
-                Text("Image 2 (Scary?)").font(.headline)
-                if viewModel.isLoading2 {
-                    ProgressView()
-                } else if let image = viewModel.image2 {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .cornerRadius(8)
-                } else {
-                    Text("Loading Image 2...")
-                        .foregroundColor(.gray)
-                        .font(.caption)
-                        .frame(height: 150)
-                }
-                // 結果リスト
-                ForEach(viewModel.results2, id: \.self) { result in
-                    Text(result)
-                        .font(.caption)
-                }
-                if let error = viewModel.error2 {
-                    Text("Last Error: \(error)").foregroundColor(.red).font(.caption)
-                }
-            }
-            .padding(.horizontal)
-
-            Button("Fetch & Screen Random Cats") {
-                viewModel.fetchAndProcessRandomImages()
-            }
-            .padding(.top)
-
-            Spacer()
-        }
-        .padding(.top)
-        .onAppear {
-            viewModel.processImage1()
-            viewModel.processImage2()
         }
     }
-}
-
-#Preview {
-    ContentView()
 }
