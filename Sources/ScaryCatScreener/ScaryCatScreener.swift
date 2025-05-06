@@ -2,6 +2,9 @@ import CoreML
 import UIKit
 import Vision
 
+// Classificationタプルの型エイリアス (ScreeningReport.swiftで定義済みなのでここでは不要)
+// public typealias ClassificationTuple = (identifier: String, confidence: Float)
+
 public actor ScaryCatScreener {
 
     private static let UnifiedModelName = "ScaryCatScreeningML"
@@ -51,17 +54,17 @@ public actor ScaryCatScreener {
         let request = VNCoreMLRequest(model: self.screeningModel)
         request.usesCPUOnly = true
 
-        var allObservations: [Classification] = []
-        var decisiveDetection: Classification? = nil
+        var allObservations: [ClassResultTuple] = []
+        var decisiveDetection: ClassResultTuple? = nil
 
         do {
             try handler.perform([request])
 
             if let results = request.results as? [VNClassificationObservation] {
-                allObservations = results.map { Classification(identifier: $0.identifier, confidence: $0.confidence) }
+                allObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
                 
-                decisiveDetection = allObservations.first { classification in
-                    classification.identifier.lowercased() != "safe" && classification.confidence >= probabilityThreshold
+                decisiveDetection = allObservations.first { class_result_tuple in
+                    class_result_tuple.identifier.lowercased() != "safe" && class_result_tuple.confidence >= probabilityThreshold
                 }
             } else {
                 return ScreeningReport(decisiveDetection: nil, allClassifications: [])
