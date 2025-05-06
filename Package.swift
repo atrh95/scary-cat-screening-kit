@@ -26,7 +26,7 @@ let package = Package(
             path: "Sources/ScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
-                .copy("SCARY_CAT_SCREENER.md") // ドキュメントファイル (リソースとしてコピー)
+                .copy("SCARY_CAT_SCREENER.md"), // ドキュメントファイル (リソースとしてコピー)
             ]
         ),
         .testTarget(

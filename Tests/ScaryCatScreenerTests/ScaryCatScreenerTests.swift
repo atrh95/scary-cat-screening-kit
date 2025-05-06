@@ -42,10 +42,10 @@ final class ScaryCatScreenerTests: XCTestCase {
             return
         }
         let images: [UIImage] = [blankImage]
-        
+
         // ログを有効にして実行。安全判定の閾値を100%にして、このテストではモデル判定によらず画像が返ることを期待
         let safeImages = try await screener.screen(images: images, probabilityThreshold: 1.0, enableLogging: true)
-        
+
         XCTAssertEqual(safeImages.count, 1, "有効（空）画像1枚スクリーニング時、安全と仮定して1枚返却")
         if !safeImages.isEmpty {
             XCTAssertEqual(safeImages[0], blankImage, "返却画像は入力画像と同一")
@@ -57,13 +57,13 @@ final class ScaryCatScreenerTests: XCTestCase {
         // UIImage() は cgImage や ciImage を持たない空の画像を生成する
         let invalidImage = UIImage()
         let images: [UIImage] = [invalidImage]
-        
+
         // コンソール出力を抑制するため、このテストではログを無効化
         let safeImages = try await screener.screen(images: images, enableLogging: false)
-        
+
         XCTAssertTrue(safeImages.isEmpty, "CGImage変換不可画像は除外、結果は空配列")
     }
-    
+
     // 有効な画像と無効な画像が混在する場合に、有効な画像のみが返ることを確認
     func testScreen_WithMixedValidAndInvalidImages() async throws {
         guard let blankImage = createBlankUIImage() else {
@@ -72,12 +72,12 @@ final class ScaryCatScreenerTests: XCTestCase {
         }
         // この画像はVisionで処理できない
         let invalidImage = UIImage()
-        
+
         let images: [UIImage] = [blankImage, invalidImage, blankImage]
-        
+
         // ログを有効にして実行。安全判定の閾値を100%にして、このテストではモデル判定によらず有効画像が返ることを期待
         let safeImages = try await screener.screen(images: images, probabilityThreshold: 1.0, enableLogging: true)
-        
+
         XCTAssertEqual(safeImages.count, 2, "有効画像のみ返却")
         if safeImages.count == 2 {
             XCTAssertTrue(safeImages.allSatisfy { $0 === blankImage }, "返却画像は全て有効な空画像")
