@@ -1,0 +1,27 @@
+name: Swift Unit Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+  workflow_call: # 他のワークフローからの呼び出しを許可
+    outputs:
+      result:
+        description: "Unit test result" # descriptionフィールドは英語のままが一般的
+        value: ${{ jobs.test.outputs.result }}
+
+jobs:
+  run-tests:
+    runs-on: macos-latest
+    outputs:
+      result: ${{ steps.run_tests.outcome }} # ステップの成功・失敗結果
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run unit tests
+        id: run_tests
+        run: swift test 

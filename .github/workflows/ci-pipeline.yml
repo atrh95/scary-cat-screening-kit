@@ -1,4 +1,4 @@
-name: TieredGridLayout CI Pipeline
+name: Cat Screening Kit CI Pipeline
 
 on:
   push:
@@ -11,3 +11,7 @@ jobs:
   code-quality:
     name: Code Quality Check
     uses: ./.github/workflows/code-quality.yml
+
+  unit-testing:
+    name: Unit Testing
+    uses: ./.github/workflows/unit-tests.yml

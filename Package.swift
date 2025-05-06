@@ -1,5 +1,5 @@
 // swift-tools-version: 6.0
-// The swift-tools-version は、このパッケージのビルドに必要な Swift の最小バージョンを宣言
+// Swiftの最小ビルドバージョン
 
 import PackageDescription
 
@@ -23,11 +23,15 @@ let package = Package(
         .target(
             name: "ScaryCatScreener",
             dependencies: [],
-            path: "Sources/ScaryCatScreener"
+            path: "Sources/ScaryCatScreener",
+            resources: [
+                .process("Resources/ScaryCatScreeningML.mlmodel"),
+                .copy("SCARY_CAT_SCREENER.md") // ドキュメントファイル (リソースとしてコピー)
+            ]
         ),
         .testTarget(
             name: "CatScreeningKitTests",
-            dependencies: ["CatScreeningKit"],
+            dependencies: ["CatScreeningKit", "ScaryCatScreener"], // テストターゲットはScaryCatScreenerにも直接依存
             path: "Tests/ScaryCatScreenerTests"
         ),
     ],

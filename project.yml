@@ -1,11 +1,17 @@
+# mint run xcodegen generate
+
 name: CatScreeningKit
 options:
   bundleIdPrefix: com.akitorahayashi.CatScreeningKit
-path: CatScreeningKit.xcodeproj
+  # path: CatScreeningKit.xcodeproj # xcodegen は通常 project.yml と同じ場所に生成するため省略可
+  deploymentTarget:
+    iOS: "13.0"
 
 packages:
+  # Package.swift を参照するためのXcodeGen内の識別名
   CatScreeningKit:
     path: .
+#    product: CatScreeningKit # Package.swift 内の product 名と一致する場合、省略可
 
 schemes:
   SampleApp:
@@ -14,15 +20,23 @@ schemes:
         SampleApp: all
     run:
       config: Debug
-    test:
-      config: Debug
-      targets: []
     profile:
       config: Release
     analyze:
       config: Debug
     archive:
       config: Release
+
+  # For testing the library itself
+  CatScreeningKitTests:
+    build:
+      targets:
+        # テストターゲットが依存するライブラリもビルドされる
+        CatScreeningKitTests: all
+    test:
+      # 実行するテストターゲット
+      targets:
+        - CatScreeningKitTests
 
 targets:
   SampleApp:
@@ -32,8 +46,8 @@ targets:
     sources:
       - path: SampleApp
     dependencies:
-      - package: CatScreeningKit
-        product: CatScreeningKit
+      - package: CatScreeningKit # packagesセクションで定義した参照名
+        product: CatScreeningKit # Package.swift内のプロダクト名
     info:
       path: SampleApp/Info.plist
       properties:
@@ -43,3 +57,17 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).SampleApp
+
+  CatScreeningKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - Tests/ScaryCatScreenerTests # テストソースパス
+    dependencies:
+      - package: CatScreeningKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).CatScreeningKitTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "" # ライブラリテストのため空
