@@ -77,7 +77,7 @@ public final class ScaryCatScreener: CatScreenerProtocol {
     /// - Returns: A tuple `(category: String, confidence: Float)` containing the class name and confidence
     ///            if any class exceeds the threshold. Returns `nil` if all classes are below the threshold ("Safe").
     /// - Throws: An `Error` if the image cannot be processed or if a prediction error occurs.
-    public func screen(image: UIImage, probabilityThreshold: Float = 0.8) async throws -> ScreeningReport {
+    public func screen(image: UIImage, probabilityThreshold: Float = 0.65) async throws -> ScreeningReport {
         let screeningID = UUID().uuidString.prefix(8) // Short unique ID for this screening run
         print("\n--- [ScaryCatScreener] Starting image screening (ID: \(screeningID)) with '\(UnifiedModelName)' ---")
 
