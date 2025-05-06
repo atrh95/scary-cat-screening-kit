@@ -205,18 +205,28 @@ final class ContentViewModel: ObservableObject {
 
         do {
             print("Screening image (Run \(runIndex))...")
-            let detectionResult: (category: String, confidence: Float)? = try await screener.screen(image: image, probabilityThreshold: 0.8)
-            let resultString: String
-            if let result = detectionResult {
-                // 生の信頼度をログに出力
-                print("DEBUG: Raw confidence for \(result.category): \(result.confidence)")
-                let confidencePercent = String(format: "%.1f", result.confidence * 100)
-                resultString = "Run \(runIndex): Not Safe (Detected: \(result.category) - \(confidencePercent)%)"
+            let report: ScreeningReport = try await screener.screen(image: image, probabilityThreshold: 0.8)
+            
+            var resultLines: [String] = []
+
+            if let detection = report.decisiveDetection {
+                resultLines.append("判定結果 (実行\(runIndex)): 要確認 (検出: \(detection.identifier) - 信頼度: \(String(format: "%.3f", detection.confidence)))")
             } else {
-                resultString = "Run \(runIndex): Safe"
+                resultLines.append("判定結果 (実行\(runIndex)): 安全です")
             }
+
+            if report.allClassifications.isEmpty {
+                resultLines.append("  (各クラスの信頼度情報なし)")
+            } else {
+                resultLines.append("  各クラスの信頼度:")
+                for classification in report.allClassifications {
+                    resultLines.append("    - \(classification.identifier): \(String(format: "%.3f", classification.confidence))")
+                }
+            }
+            
+            let resultString = resultLines.joined(separator: "\n")
             self[keyPath: resultsBinding].append(resultString)
-            print("Screening complete (Run \(runIndex)): \(resultString)")
+            print("Screening display string (Run \(runIndex)):\n\(resultString)")
 
         } catch {
             let errorMsg = error.localizedDescription
