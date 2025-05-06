@@ -1,4 +1,5 @@
 import SwiftUI
+
 // import PhotosUI // PhotosPickerが不要になったためコメントアウトまたは削除
 import CatScreeningKit
 
@@ -9,16 +10,19 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
-                Button(action: {
-                    viewModel.fetchAndScreenImagesFromCatAPI(count: 5) // 例として5枚取得
-                }) {
-                    Label("APIから猫画像を取得してスクリーニング", systemImage: "arrow.clockwise.icloud")
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(viewModel.isLoading ? Color.gray : Color.cyan)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
+                Button(
+                    action: {
+                        viewModel.fetchAndScreenImagesFromCatAPI(count: 5) // 例として5枚取得
+                    },
+                    label: {
+                        Label("APIから猫画像を取得してスクリーニング", systemImage: "arrow.clockwise.icloud")
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(viewModel.isLoading ? Color.gray : Color.cyan)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                )
                 .disabled(viewModel.isLoading)
                 .padding(.horizontal)
                 .padding(.top)
@@ -41,7 +45,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                     }
                 }
-                
+
                 if viewModel.isLoading {
                     ProgressView("処理中...")
                         .padding()
@@ -83,7 +87,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                     }
                 }
-                
+
                 Spacer()
             }
             .navigationTitle("Scary Cat Screener")

@@ -18,7 +18,7 @@ public struct ScreeningReport: Sendable {
     /// レポートの内容をコンソールに出力します。
     public func printReport() {
         print("--- Screening Report ---")
-        
+
         print("[Decisive Detection]")
         if let detection = decisiveDetection {
             let confidencePercent = String(format: "%.1f%%", detection.confidence * 100)
@@ -27,7 +27,7 @@ public struct ScreeningReport: Sendable {
         } else {
             print("  None")
         }
-        
+
         print("\n[All Classifications] (\(allClassifications.count) items)")
         if allClassifications.isEmpty {
             print("  None")
@@ -39,4 +39,4 @@ public struct ScreeningReport: Sendable {
         }
         print("----------------------")
     }
-} 
+}

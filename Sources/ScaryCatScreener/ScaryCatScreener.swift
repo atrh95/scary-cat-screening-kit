@@ -6,7 +6,6 @@ import Vision
 // public typealias ClassificationTuple = (identifier: String, confidence: Float)
 
 public actor ScaryCatScreener {
-
     private static let UnifiedModelName = "ScaryCatScreeningML"
 
     /// スクリーニングモデル
@@ -29,7 +28,7 @@ public actor ScaryCatScreener {
         do {
             let mlModel = try MLModel(contentsOf: modelURL)
             let visionModel = try VNCoreMLModel(for: mlModel)
-            self.screeningModel = visionModel
+            screeningModel = visionModel
         } catch {
             print("[ScaryCatScreener] [ERROR] Failed to load model '\(ScaryCatScreener.UnifiedModelName)': \(error)")
             throw ScaryCatScreenerError.modelLoadingFailed(underlyingError: error)
@@ -45,17 +44,23 @@ public actor ScaryCatScreener {
     ///   - enableLogging: 内部ログをコンソールに出力するかどうか (デフォルトfalse)
     /// - Returns: 安全と判断されたUIImageの配列 (元の順序を保持)
     /// - Throws: Visionリクエスト処理中の致命的なエラー
-    public func screen(images: [UIImage], probabilityThreshold: Float = 0.65, enableLogging: Bool = false) async throws -> [UIImage] {
+    public func screen(
+        images: [UIImage],
+        probabilityThreshold: Float = 0.65,
+        enableLogging: Bool = false
+    ) async throws -> [UIImage] {
         var processingResults: [(originalImage: UIImage, isSafe: Bool)] = []
 
         for image in images {
             var isSafeForCurrentImage = true // デフォルトで安全と仮定
             var currentImageAllObservations: [ClassResultTuple] = []
-            var currentImageDecisiveDetection: ClassResultTuple? = nil
+            var currentImageDecisiveDetection: ClassResultTuple?
 
             guard let cgImage = image.cgImage else {
                 if enableLogging {
-                    print("[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image.")
+                    print(
+                        "[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
+                    )
                 }
                 isSafeForCurrentImage = false // CGImageにできないものは安全ではない
                 // この画像に対するレポート（空の検出結果）を出力
@@ -68,7 +73,7 @@ public actor ScaryCatScreener {
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            let request = VNCoreMLRequest(model: self.screeningModel)
+            let request = VNCoreMLRequest(model: screeningModel)
             request.usesCPUOnly = true
 
             do {
@@ -82,7 +87,9 @@ public actor ScaryCatScreener {
                 // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
             } catch {
                 if enableLogging {
-                    print("[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate.")
+                    print(
+                        "[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate."
+                    )
                 }
                 // Visionリクエスト失敗はメソッド全体のエラーとする
                 throw ScaryCatScreenerError.predictionFailed(underlyingError: error)
@@ -100,12 +107,12 @@ public actor ScaryCatScreener {
             if currentImageDecisiveDetection != nil {
                 isSafeForCurrentImage = false // 何か検出されたら安全ではない
             }
-            
+
             processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
         }
 
         // 安全な画像のみを元の順序でフィルタリングして返す
-        let safeImages = processingResults.filter { $0.isSafe }.map { $0.originalImage }
+        let safeImages = processingResults.filter(\.isSafe).map(\.originalImage)
         return safeImages
     }
 }
