@@ -6,25 +6,43 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
-  workflow_call: # 他のワークフローからの呼び出しを許可
+  workflow_call:
     outputs:
       result:
         description: "Unit test result"
-        value: ${{ jobs.run-tests.outputs.result }} # jobs.testから修正
+        value: ${{ jobs.run-tests.outputs.result }}
 
 jobs:
   run-tests:
     runs-on: macos-latest
+    env:
+      MINT_PATH: ${{ github.workspace }}/.mint
     outputs:
-      result: ${{ steps.run_tests.outcome }} # ステップの成否結果
+      result: ${{ job.status }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Mint
+        run: brew install mint
+
+      - name: Cache Mint packages
+        uses: actions/cache@v4
+        id: cache-mint-packages
+        with:
+          path: ${{ env.MINT_PATH }}
+          key: ${{ runner.os }}-mint-${{ hashFiles('**/Mintfile') }}
+          restore-keys: |
+            ${{ runner.os }}-mint-
+
+      - name: Bootstrap Mint packages
+        run: mint bootstrap
+
+      - name: Generate Xcode project
+        run: mint run xcodegen generate
+
       - name: Run unit tests
         id: run_tests
-        # xcodebuildでの実行に変更 (ローカルでのテスト実行に合わせる)
-        # swift test はローカルでUIKitなどの依存関係で問題があったため
         run: |
           set -o pipefail && xcodebuild test -scheme CatScreeningKitTests -destination 'platform=iOS Simulator,name=iPhone 15' | xcpretty 
