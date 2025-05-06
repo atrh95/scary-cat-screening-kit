@@ -65,6 +65,11 @@ struct ContentView: View {
             }
             .padding(.horizontal)
 
+            Button("Fetch & Screen Random Cats") {
+                viewModel.fetchAndProcessRandomImages()
+            }
+            .padding(.top)
+
             Spacer()
         }
         .padding(.top)
