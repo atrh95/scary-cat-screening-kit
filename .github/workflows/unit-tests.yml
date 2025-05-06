@@ -1,11 +1,6 @@
 name: Swift Unit Tests
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
   workflow_call:
     outputs:
       result:
