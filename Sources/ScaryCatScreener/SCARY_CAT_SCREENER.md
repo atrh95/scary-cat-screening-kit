@@ -95,7 +95,7 @@ Task {
 
 ### 複数画像のスクリーニング（バッチ処理）
 
-`screen(images:probabilityThreshold:)` メソッドを使用して、複数の `UIImage` を一度にスクリーニングできます。このメソッドは、指定した信頼度の閾値（`probabilityThreshold`）を超えた場合にのみ「安全でない」と判定された画像をフィルタリングし、安全と判断された画像の配列を返します。
+`screen(images:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `UIImage` を一度にスクリーニングできます。このメソッドは、指定した信頼度の閾値（`probabilityThreshold`）を超えた場合にのみ「安全でない」と判定された画像をフィルタリングし、安全と判断された画像の配列を返します。オプションで `enableLogging` を `true` に設定すると、処理中の詳細なログがコンソールに出力されます（デフォルトは `false` でログ出力なし）。
 
 ```swift
 // `uiImages` はスクリーニング対象の [UIImage] 配列
@@ -110,8 +110,8 @@ let uiImages: [UIImage] = [...] // スクリーニングしたい画像の配列
 
 Task {
     do {
-        // 信頼度が65%以上のものを危険と判定する例
-        let safeImages = try await screener.screen(images: uiImages, probabilityThreshold: 0.65) 
+        // 信頼度が65%以上のものを危険と判定し、ログ出力を有効にする例
+        let safeImages = try await screener.screen(images: uiImages, probabilityThreshold: 0.65, enableLogging: true) 
         
         print("\(uiImages.count)枚中、\(safeImages.count)枚の画像が安全と判定されました。")
         // safeImages を使ってUIを更新するなどの処理
@@ -127,7 +127,13 @@ Task {
 `probabilityThreshold` パラメータ:
 - この値は `0.0` から `1.0` の範囲で指定します。
 - モデルが特定のカテゴリ（例: "怖い猫"）に属すると判定した際の信頼度（confidence）が、この閾値以上の場合、その画像は「安全でない可能性が高い」と見なされます。
-- `screen(images:probabilityThreshold:)` メソッドは、この閾値に基づいてフィルタリングを行い、閾値未満の信頼度でしか問題のあるカテゴリに分類されなかった画像、または全く問題のあるカテゴリに分類されなかった画像のみを「安全な画像」として返します。
+- `screen(images:probabilityThreshold:enableLogging:)` メソッドは、この閾値に基づいてフィルタリングを行い、閾値未満の信頼度でしか問題のあるカテゴリに分類されなかった画像、または全く問題のあるカテゴリに分類されなかった画像のみを「安全な画像」として返します。
+
+`enableLogging` パラメータ (Optional):
+- 型: `Bool`
+- デフォルト値: `false`
+- `true` を指定すると、`ScaryCatScreener` の内部処理に関する詳細ログ（各画像のCGImage変換試行、Visionリクエストの実行状況、個別のスクリーニングレポートなど）がコンソールに出力されます。
+- デバッグ時や詳細な動作確認を行いたい場合に利用します。通常運用時は `false`（デフォルト）のままにしておくことで、コンソール出力を抑制できます。
 
 ## エラーハンドリング
 

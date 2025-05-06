@@ -42,9 +42,10 @@ public actor ScaryCatScreener {
     /// - Parameters:
     ///   - images: 入力UIImageの配列
     ///   - probabilityThreshold: 信頼度の閾値 (デフォルト0.65)
+    ///   - enableLogging: 内部ログをコンソールに出力するかどうか (デフォルトfalse)
     /// - Returns: 安全と判断されたUIImageの配列 (元の順序を保持)
     /// - Throws: Visionリクエスト処理中の致命的なエラー
-    public func screen(images: [UIImage], probabilityThreshold: Float = 0.65) async throws -> [UIImage] {
+    public func screen(images: [UIImage], probabilityThreshold: Float = 0.65, enableLogging: Bool = false) async throws -> [UIImage] {
         var processingResults: [(originalImage: UIImage, isSafe: Bool)] = []
 
         for image in images {
@@ -53,11 +54,15 @@ public actor ScaryCatScreener {
             var currentImageDecisiveDetection: ClassResultTuple? = nil
 
             guard let cgImage = image.cgImage else {
-                print("[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image.")
+                if enableLogging {
+                    print("[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image.")
+                }
                 isSafeForCurrentImage = false // CGImageにできないものは安全ではない
                 // この画像に対するレポート（空の検出結果）を出力
                 let reportForSkippedImage = ScreeningReport(decisiveDetection: nil, allClassifications: [])
-                reportForSkippedImage.printReport()
+                if enableLogging {
+                    reportForSkippedImage.printReport()
+                }
                 processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
                 continue // 次の画像の処理へ
             }
@@ -76,7 +81,9 @@ public actor ScaryCatScreener {
                 }
                 // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
             } catch {
-                print("[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate.")
+                if enableLogging {
+                    print("[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate.")
+                }
                 // Visionリクエスト失敗はメソッド全体のエラーとする
                 throw ScaryCatScreenerError.predictionFailed(underlyingError: error)
             }
@@ -86,7 +93,9 @@ public actor ScaryCatScreener {
                 decisiveDetection: currentImageDecisiveDetection,
                 allClassifications: currentImageAllObservations.sorted { $0.confidence > $1.confidence }
             )
-            reportForCurrentImage.printReport()
+            if enableLogging {
+                reportForCurrentImage.printReport()
+            }
 
             if currentImageDecisiveDetection != nil {
                 isSafeForCurrentImage = false // 何か検出されたら安全ではない
