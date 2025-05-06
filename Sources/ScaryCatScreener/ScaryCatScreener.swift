@@ -123,14 +123,14 @@ public final class ScaryCatScreener: CatScreenerProtocol {
                 let classification = CSKShared.Classification(identifier: observation.identifier, confidence: observation.confidence)
                 allObservations.append(classification)
                 
-                // Print confidence for each class (already done in the loop)
                 print("    - Class: \(classification.identifier), Confidence: \(String(format: "%.4f", classification.confidence))")
                 
-                // Check for decisive detection only if one hasn't already been found
-                // (First one to exceed threshold wins, if multiple could)
-                if currentDecisiveDetection == nil && classification.confidence >= probabilityThreshold {
-                    print("  [ScaryCatScreener ID: \(screeningID)] ---> Threshold exceeded for class '\(classification.identifier)'. Feature detected.")
-                    currentDecisiveDetection = classification
+                // Ignore "safe" class for decisive detection, even if it's above threshold.
+                if classification.identifier.lowercased() != "safe" { // Check against "safe" (case-insensitive)
+                    if currentDecisiveDetection == nil && classification.confidence >= probabilityThreshold {
+                        print("  [ScaryCatScreener ID: \(screeningID)] ---> Threshold exceeded for class '\(classification.identifier)'. Feature detected.")
+                        currentDecisiveDetection = classification
+                    }
                 }
             }
 
