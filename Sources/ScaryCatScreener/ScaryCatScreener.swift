@@ -2,9 +2,6 @@ import CoreML
 import UIKit
 import Vision
 
-// Classificationタプルの型エイリアス (ScreeningReport.swiftで定義済みなのでここでは不要)
-// public typealias ClassificationTuple = (identifier: String, confidence: Float)
-
 public actor ScaryCatScreener {
     private static let UnifiedModelName = "ScaryCatScreeningML"
 
@@ -69,7 +66,7 @@ public actor ScaryCatScreener {
                     reportForSkippedImage.printReport()
                 }
                 processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
-                continue // 次の画像の処理へ
+                continue
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
