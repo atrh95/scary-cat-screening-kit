@@ -23,7 +23,7 @@ import CatScreeningKit
 struct ContentView: View {
     // 利用したいスクリーナのインスタンスを作成
     // 例: ScaryCatScreener
-    let screener: any CatScreenerProtocol = ScaryCatScreener()
+    let screener = ScaryCatScreener()
 
     @State private var image: UIImage? = UIImage(named: "cat_image") // 判定したい画像
     @State private var resultText: String = "判定中..."
@@ -54,9 +54,13 @@ struct ContentView: View {
 
         resultText = "判定中..."
         do {
-            let result = try await screener.screen(image: image)
-            // result は (label: String, confidence: Float) のタプル
-            resultText = "結果: \(result.label) (信頼度: \(String(format: "%.2f", result.confidence * 100))%)"
+            let report = try await screener.screen(image: image)
+            // report は ScreeningReport 型
+            if let detection = report.decisiveDetection {
+                resultText = "結果: \(detection.identifier) (信頼度: \(String(format: "%.2f", detection.confidence * 100))%)"
+            } else {
+                resultText = "結果: 安全 (閾値を超えた検出なし)"
+            }
         } catch let error as PredictionError {
             resultText = "エラー: \(error.localizedDescription)"
         } catch {
@@ -68,7 +72,10 @@ struct ContentView: View {
 
 ## 設計
 
-`CatScreeningKit` の中心となるのは `CatScreenerProtocol` です。これは `minConfidence` プロパティと、画像を受け取り、分類結果またはエラーを `async` で返す `screen` メソッドを定義します。クライアントコードは具体的な実装クラス（例: `ScaryCatScreener`）のインスタンスを直接生成するか、このプロトコルに依存することにより、テスト時にモックオブジェクトを容易に注入でき、新しいスクリーナを追加する際も既存コードへの影響を抑えられます。
+`CatScreeningKit` は、特定の猫の特性を検出するために `ScaryCatScreener` クラスを提供します。
+クライアントコードは `ScaryCatScreener` のインスタンスを直接生成して使用します。
+このクラスは、画像を入力として受け取り、非同期で `ScreeningReport` オブジェクトを返します。
+`ScreeningReport` には、最も可能性の高い検出結果（もしあれば）と、すべての分類クラスの信頼度スコアが含まれます。
 
 ## 利用可能なスクリーナ
 
@@ -84,7 +91,6 @@ struct ContentView: View {
 │   └── workflows/
 ├── Sources/
 │   ├── CatScreeningKit/
-│   ├── CSKShared/
 │   └── ScaryCatScreener/
 │       └── Resources/
 ├── Tests/

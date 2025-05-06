@@ -17,17 +17,13 @@ let package = Package(
     targets: [
         .target(
             name: "CatScreeningKit",
-            dependencies: ["ScaryCatScreener", "CSKShared"],
+            dependencies: ["ScaryCatScreener"],
             path: "Sources/CatScreeningKit"
         ),
         .target(
             name: "ScaryCatScreener",
-            dependencies: ["CSKShared"],
+            dependencies: [],
             path: "Sources/ScaryCatScreener"
-        ),
-        .target(
-            name: "CSKShared",
-            path: "Sources/CSKShared"
         ),
         .testTarget(
             name: "CatScreeningKitTests",
