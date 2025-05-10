@@ -101,7 +101,7 @@ final class ScreeningViewModel: ObservableObject {
                 // スクリーニングを実行
                 let safeImages = try await screener.screen(
                     images: downloadedImages,
-                    probabilityThreshold: 0.28,
+                    probabilityThreshold: 0.80,
                     enableLogging: true
                 )
 
