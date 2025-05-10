@@ -10,6 +10,13 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
         let identifier: String
     }
 
+    // NEW: Struct to hold all processing results from a single model for detailed logging
+    private struct ModelProcessingOutput: @unchecked Sendable {
+        let modelIdentifier: String
+        let allObservations: [VNClassificationObservation]
+        let flaggingObservation: VNClassificationObservation? // The specific observation that flagged the image, if any
+    }
+
     /// スクリーニングモデルのコレクション
     private let ovrScreeningModelContainers: [OvRModelContainer]
 
@@ -105,70 +112,121 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
 
             guard let cgImage = image.cgImage else {
                 if enableLogging {
-                    print(
-                        "[OvRScaryCatScreener] [エラー] CGImageの取得に失敗しました。画像を安全でないと判断し、この画像のVision処理をスキップします。"
+                    let report = OvRScreeningReport(
+                        flaggingDetections: [],
+                        restDetection: nil,
+                        imageIndex: index + 1,
+                        detailedLogOutputs: nil
                     )
-                    let reportForSkippedImage = OvRScreeningReport(flaggingDetections: [])
-                    reportForSkippedImage.printReport()
+                    report.printReport()
                 }
                 indexedProcessingResults.append((index: index, image: image, isSafe: false))
                 continue // Move to the next image
             }
 
-            let detectionResultsFromModels: [ModelDetectionInfo?] = await withTaskGroup(
-                of: ModelDetectionInfo?.self,
-                returning: [ModelDetectionInfo?].self
+            let modelOutputs: [ModelProcessingOutput] = await withTaskGroup(
+                of: ModelProcessingOutput.self, // Changed from ModelDetectionInfo?
+                returning: [ModelProcessingOutput].self // Changed from [ModelDetectionInfo?]
             ) { modelTaskGroup in
                 for container in self.ovrScreeningModelContainers {
                     modelTaskGroup.addTask {
                         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
                         let request = VNCoreMLRequest(model: container.model)
                         request.usesCPUOnly = true
+                        var allObservationsForCurrentModel: [VNClassificationObservation] = []
+                        var specificFlaggingObservation: VNClassificationObservation? = nil
 
                         do {
                             try handler.perform([request])
-                            if let results = request.results as? [VNClassificationObservation],
-                               let problematicObservation = results
-                               .first(where: { $0.confidence >= probabilityThreshold })
-                            {
-                                return ModelDetectionInfo(
-                                    modelIdentifier: container.identifier,
-                                    detection: (
-                                        identifier: problematicObservation.identifier,
-                                        confidence: problematicObservation.confidence
-                                    )
-                                )
+                            if let results = request.results as? [VNClassificationObservation] {
+                                allObservationsForCurrentModel = results
+                                if let problematicObservation = results
+                                    .first(where: { $0.confidence >= probabilityThreshold && $0.identifier != "Rest" })
+                                {
+                                    specificFlaggingObservation = problematicObservation
+                                }
                             }
-                            return nil
                         } catch {
                             if enableLogging {
                                 print(
                                     "[OvRScaryCatScreener] [エラー] モデル\(container.identifier)のVisionリクエストに失敗しました: \(error.localizedDescription)"
                                 )
                             }
-                            return nil
+                            // Still return a ModelProcessingOutput, but with empty observations and no flagging one.
                         }
+                        return ModelProcessingOutput(
+                            modelIdentifier: container.identifier,
+                            allObservations: allObservationsForCurrentModel,
+                            flaggingObservation: specificFlaggingObservation
+                        )
                     }
                 }
 
-                var collectedDetections: [ModelDetectionInfo?] = []
-                collectedDetections.reserveCapacity(self.ovrScreeningModelContainers.count)
-                for await detectionResult in modelTaskGroup {
-                    collectedDetections.append(detectionResult)
+                var collectedOutputs: [ModelProcessingOutput] = []
+                collectedOutputs.reserveCapacity(self.ovrScreeningModelContainers.count)
+                for await output in modelTaskGroup {
+                    collectedOutputs.append(output)
                 }
-                return collectedDetections
+                return collectedOutputs
             }
 
-            for detectionInfoOrNil in detectionResultsFromModels {
-                if let validDetectionInfo = detectionInfoOrNil {
-                    currentImageFlaggingDetections.append(validDetectionInfo)
+            currentImageFlaggingDetections = [] // Reset for current image
+            isSafeForCurrentImage = true // Assume safe until a flagging detection is found
+
+            for output in modelOutputs {
+                if let flaggingObs = output.flaggingObservation {
                     isSafeForCurrentImage = false
+                    // Assuming ModelDetectionInfo structure as per previous discussions.
+                    // This part remains to correctly build the flaggingDetections array for the report.
+                    currentImageFlaggingDetections.append(ModelDetectionInfo(
+                        modelIdentifier: output.modelIdentifier,
+                        detection: (identifier: flaggingObs.identifier, confidence: flaggingObs.confidence)
+                    ))
                 }
             }
 
-            if enableLogging {
-                let reportForCurrentImage =
-                    OvRScreeningReport(flaggingDetections: currentImageFlaggingDetections)
+            var bestRestDetection: ClassResultTuple? = nil
+            if isSafeForCurrentImage {
+                for output in modelOutputs {
+                    for observation in output.allObservations {
+                        if observation.identifier == "Rest" {
+                            if bestRestDetection == nil || observation.confidence > bestRestDetection!.confidence {
+                                bestRestDetection = (identifier: observation.identifier, confidence: observation.confidence)
+                            }
+                            break // This model found "Rest", so break the loop
+                        }
+                    }
+                }
+            }
+
+            // enableLogging is true only if detailed log outputs are included in the report
+            var loggableOutputsForReport: [LoggableModelOutput]? = nil
+            if enableLogging && isSafeForCurrentImage { // Detailed log outputs are created only for safe images
+                loggableOutputsForReport = modelOutputs.map { processingOutput -> LoggableModelOutput in
+                    let observations = processingOutput.allObservations.map { vnObservation -> (String, Float) in
+                        return (className: vnObservation.identifier, confidence: vnObservation.confidence)
+                    }
+                    return LoggableModelOutput(modelIdentifier: processingOutput.modelIdentifier, observations: observations)
+                }
+            }
+            
+            // OvRScaryCatScreener side detailed log outputs are removed (OvRScreeningReport handles them)
+
+            if enableLogging { // Detailed log outputs are included in the report only if enableLogging is true
+                let reportForCurrentImage = OvRScreeningReport(
+                    flaggingDetections: currentImageFlaggingDetections,
+                    restDetection: bestRestDetection,
+                    imageIndex: index + 1, // Always pass the index
+                    detailedLogOutputs: loggableOutputsForReport // Value is only present if enableLogging is true for safe images
+                )
+                reportForCurrentImage.printReport()
+            } else if !isSafeForCurrentImage { // Even if enableLogging is false, a simple report is output for unsafe images
+                let reportForCurrentImage = OvRScreeningReport(
+                    flaggingDetections: currentImageFlaggingDetections,
+                    restDetection: nil, // Rest information is not needed for unsafe images
+                    imageIndex: index + 1, // Index is passed for situation awareness
+                    detailedLogOutputs: nil
+                )
                 reportForCurrentImage.printReport()
             }
 
