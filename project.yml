@@ -1,6 +1,6 @@
 # mint run xcodegen generate
 
-name: SampleApp.xcodeproj
+name: SampleApp
 options:
   bundleIdPrefix: com.akitorahayashi.ScaryCatScreeningKit
   deploymentTarget:

@@ -17,27 +17,31 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
         }
 
         // Resourcesディレクトリ内のモデルファイルを検索
-        let resourcesPath = resourceURL.appendingPathComponent("Resources")
+        let modelFilesPath = resourceURL
         let fileManager = FileManager.default
         let modelFiles: [String]
 
         do {
-            let contents = try fileManager.contentsOfDirectory(atPath: resourcesPath.path)
+            // 指定されたパスのコンテンツを取得
+            let contents = try fileManager.contentsOfDirectory(atPath: modelFilesPath.path)
             // コンパイル後の.mlmodelcファイルを検索対象とする
             modelFiles = contents.filter { $0.hasPrefix(MultiClassScaryCatScreener.ModelNamePrefix) && $0.hasSuffix(MultiClassScaryCatScreener.ModelNameSuffix) }
         } catch {
-            // Resourcesディレクトリが見つからない場合に発生
+            // ディレクトリのコンテンツ取得に失敗した場合 (例: パスが存在しない、アクセス権限がない)
+            // ここでは、モデルロード失敗として扱う
             throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
         }
 
         guard modelFiles.count == 1, let modelFileNameWithExtension = modelFiles.first else {
+            // 期待するモデルファイルが見つからない、または複数見つかった場合
+            // 詳細なエラータイプを検討することも可能 (例: .modelNotFound, .multipleModelsFound)
             throw ScaryCatScreenerError.modelNotFound.asNSError()
         }
         
-        // モデルファイルのURLを生成
-        let modelURL = resourcesPath.appendingPathComponent(modelFileNameWithExtension)
+        // モデルファイルの完全なURLを生成
+        let modelURL = modelFilesPath.appendingPathComponent(modelFileNameWithExtension)
 
-        // 念のためファイルの物理的存在を確認
+        // 念のためファイルの物理的存在を確認 (通常はcontentsOfDirectoryで確認済みだが、追加の堅牢性のため)
         if !fileManager.fileExists(atPath: modelURL.path) {
             throw ScaryCatScreenerError.modelNotFound.asNSError()
         }
