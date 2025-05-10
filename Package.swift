@@ -11,18 +11,23 @@ let package = Package(
     products: [
         .library(
             name: "ScaryCatScreeningKit",
-            targets: ["ScaryCatScreeningKit", "OvRScaryCatScreener"]
+            targets: ["ScaryCatScreeningKit", "OvRScaryCatScreener", "SCSInterface"]
         ),
     ],
     targets: [
         .target(
+            name: "SCSInterface",
+            dependencies: [],
+            path: "Sources/SCSInterface"
+        ),
+        .target(
             name: "ScaryCatScreeningKit",
-            dependencies: ["MultiClassScaryCatScreener", "OvRScaryCatScreener"],
+            dependencies: ["MultiClassScaryCatScreener", "OvRScaryCatScreener", "SCSInterface"],
             path: "Sources/ScaryCatScreeningKit"
         ),
         .target(
             name: "MultiClassScaryCatScreener",
-            dependencies: [],
+            dependencies: ["SCSInterface"],
             path: "Sources/MultiClassScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
@@ -30,12 +35,12 @@ let package = Package(
         ),
         .target(
             name: "OvRScaryCatScreener",
-            dependencies: [],
+            dependencies: ["SCSInterface"],
             path: "Sources/OvRScaryCatScreener"
         ),
         .testTarget(
             name: "ScaryCatScreeningKitTests",
-            dependencies: ["ScaryCatScreeningKit", "MultiClassScaryCatScreener"],
+            dependencies: ["ScaryCatScreeningKit", "MultiClassScaryCatScreener", "SCSInterface"],
             path: "Tests/ScaryCatScreenerTests"
         ),
     ],

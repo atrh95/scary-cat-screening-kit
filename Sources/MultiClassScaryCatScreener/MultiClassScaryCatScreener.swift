@@ -1,8 +1,9 @@
 import CoreML
 import UIKit
 import Vision
+import SCSInterface
 
-public actor MultiClassScaryCatScreener {
+public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
     private static let UnifiedModelName = "ScaryCatScreeningML"
 
     /// スクリーニングモデル
