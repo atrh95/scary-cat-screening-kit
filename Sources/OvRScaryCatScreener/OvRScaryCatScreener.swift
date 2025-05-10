@@ -99,90 +99,83 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
         var indexedProcessingResults = [(index: Int, image: UIImage, isSafe: Bool)]()
         indexedProcessingResults.reserveCapacity(images.count)
 
-        try await withThrowingTaskGroup(of: (index: Int, image: UIImage, isSafe: Bool).self) { imagesGroup in
-            for (index, image) in images.enumerated() {
-                imagesGroup.addTask {
-                    var isSafeForCurrentImage = true
-                    var currentImageFlaggingDetections: [ModelDetectionInfo] = []
+        for (index, image) in images.enumerated() {
+            var isSafeForCurrentImage = true
+            var currentImageFlaggingDetections: [ModelDetectionInfo] = []
 
-                    guard let cgImage = image.cgImage else {
-                        if enableLogging {
-                            print(
-                                "[OvRScaryCatScreener] [エラー] CGImageの取得に失敗しました。画像を安全でないと判断し、この画像のVision処理をスキップします。"
-                            )
-                            let reportForSkippedImage = OvRScreeningReport(flaggingDetections: [])
-                            reportForSkippedImage.printReport()
-                        }
-                        return (index, image, false)
-                    }
+            guard let cgImage = image.cgImage else {
+                if enableLogging {
+                    print(
+                        "[OvRScaryCatScreener] [エラー] CGImageの取得に失敗しました。画像を安全でないと判断し、この画像のVision処理をスキップします。"
+                    )
+                    let reportForSkippedImage = OvRScreeningReport(flaggingDetections: [])
+                    reportForSkippedImage.printReport()
+                }
+                indexedProcessingResults.append((index: index, image: image, isSafe: false))
+                continue // Move to the next image
+            }
 
-                    let detectionResultsFromModels: [ModelDetectionInfo?] = await withTaskGroup(
-                        of: ModelDetectionInfo?.self,
-                        returning: [ModelDetectionInfo?].self
-                    ) { modelTaskGroup in
-                        for container in self.ovrScreeningModelContainers {
-                            modelTaskGroup.addTask {
-                                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-                                let request = VNCoreMLRequest(model: container.model)
-                                request.usesCPUOnly = true
+            let detectionResultsFromModels: [ModelDetectionInfo?] = await withTaskGroup(
+                of: ModelDetectionInfo?.self,
+                returning: [ModelDetectionInfo?].self
+            ) { modelTaskGroup in
+                for container in self.ovrScreeningModelContainers {
+                    modelTaskGroup.addTask {
+                        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                        let request = VNCoreMLRequest(model: container.model)
+                        request.usesCPUOnly = true
 
-                                do {
-                                    try handler.perform([request])
-                                    if let results = request.results as? [VNClassificationObservation],
-                                       let problematicObservation = results
-                                       .first(where: { $0.confidence >= probabilityThreshold })
-                                    {
-                                        return ModelDetectionInfo(
-                                            modelIdentifier: container.identifier,
-                                            detection: (
-                                                identifier: problematicObservation.identifier,
-                                                confidence: problematicObservation.confidence
-                                            )
-                                        )
-                                    }
-                                    return nil
-                                } catch {
-                                    if enableLogging {
-                                        print(
-                                            "[OvRScaryCatScreener] [エラー] モデル\(container.identifier)のVisionリクエストに失敗しました: \(error.localizedDescription)"
-                                        )
-                                    }
-                                    return nil
-                                }
+                        do {
+                            try handler.perform([request])
+                            if let results = request.results as? [VNClassificationObservation],
+                               let problematicObservation = results
+                               .first(where: { $0.confidence >= probabilityThreshold })
+                            {
+                                return ModelDetectionInfo(
+                                    modelIdentifier: container.identifier,
+                                    detection: (
+                                        identifier: problematicObservation.identifier,
+                                        confidence: problematicObservation.confidence
+                                    )
+                                )
                             }
-                        }
-
-                        var collectedDetections: [ModelDetectionInfo?] = []
-                        collectedDetections.reserveCapacity(self.ovrScreeningModelContainers.count)
-                        for await detectionResult in modelTaskGroup {
-                            collectedDetections.append(detectionResult)
-                        }
-                        return collectedDetections
-                    }
-
-                    for detectionInfoOrNil in detectionResultsFromModels {
-                        if let validDetectionInfo = detectionInfoOrNil {
-                            currentImageFlaggingDetections.append(validDetectionInfo)
-                            isSafeForCurrentImage = false
+                            return nil
+                        } catch {
+                            if enableLogging {
+                                print(
+                                    "[OvRScaryCatScreener] [エラー] モデル\(container.identifier)のVisionリクエストに失敗しました: \(error.localizedDescription)"
+                                )
+                            }
+                            return nil
                         }
                     }
+                }
 
-                    if enableLogging {
-                        let reportForCurrentImage =
-                            OvRScreeningReport(flaggingDetections: currentImageFlaggingDetections)
-                        reportForCurrentImage.printReport()
-                    }
+                var collectedDetections: [ModelDetectionInfo?] = []
+                collectedDetections.reserveCapacity(self.ovrScreeningModelContainers.count)
+                for await detectionResult in modelTaskGroup {
+                    collectedDetections.append(detectionResult)
+                }
+                return collectedDetections
+            }
 
-                    return (index, image, isSafeForCurrentImage)
+            for detectionInfoOrNil in detectionResultsFromModels {
+                if let validDetectionInfo = detectionInfoOrNil {
+                    currentImageFlaggingDetections.append(validDetectionInfo)
+                    isSafeForCurrentImage = false
                 }
             }
 
-            for try await result in imagesGroup {
-                indexedProcessingResults.append(result)
+            if enableLogging {
+                let reportForCurrentImage =
+                    OvRScreeningReport(flaggingDetections: currentImageFlaggingDetections)
+                reportForCurrentImage.printReport()
             }
+
+            indexedProcessingResults.append((index: index, image: image, isSafe: isSafeForCurrentImage))
         }
 
-        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(\.isSafe).map(\.image)
+        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter { $0.isSafe }.map { $0.image }
         return safeImages
     }
 }
