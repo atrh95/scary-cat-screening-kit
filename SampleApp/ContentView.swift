@@ -10,7 +10,7 @@ struct ContentView: View {
             VStack(spacing: 16) {
                 Button(
                     action: {
-                        viewModel.fetchAndScreenImagesFromCatAPI(count: 5) // 例として5枚取得
+                        viewModel.fetchAndScreenImagesFromCatAPI(count: 5)
                     },
                     label: {
                         Label("APIから猫画像を取得してスクリーニング", systemImage: "arrow.clockwise.icloud")

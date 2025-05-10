@@ -77,7 +77,7 @@ Task {
         print("スクリーニング処理でエラーが発生しました: \(error.localizedDescription)")
         print("エラーコード: \(error.code), ドメイン: \(error.domain)")
         if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
-            print("根本原因: \(underlying.localizedDescription)")
+            print("原因: \(underlying.localizedDescription)")
         }
     }
 }

@@ -4,10 +4,11 @@ import Vision
 import SCSInterface
 
 public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
-    private static let UnifiedModelName = "ScaryCatScreeningML"
+    private static let ModelNamePrefix = "ScaryCatScreeningML_MultiClass"
+    private static let ModelNameSuffix = ".mlmodelc"
 
     /// スクリーニングモデル
-    private let screeningModel: VNCoreMLModel
+    private let multiClassScreeningModel: VNCoreMLModel
 
     /// モデルをロード (失敗時はエラー)
     public init() throws {
@@ -15,16 +16,38 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             throw ScaryCatScreenerError.resourceBundleNotFound.asNSError()
         }
 
-        let modelURL = resourceURL.appendingPathComponent("\(MultiClassScaryCatScreener.UnifiedModelName).mlmodelc")
+        // Resourcesディレクトリ内のモデルファイルを検索
+        let resourcesPath = resourceURL.appendingPathComponent("Resources")
+        let fileManager = FileManager.default
+        let modelFiles: [String]
 
-        if !FileManager.default.fileExists(atPath: modelURL.path) {
-            throw ScaryCatScreenerError.modelLoadingFailed(originalError: nil).asNSError()
+        do {
+            let contents = try fileManager.contentsOfDirectory(atPath: resourcesPath.path)
+            // コンパイル後の.mlmodelcファイルを検索対象とする
+            modelFiles = contents.filter { $0.hasPrefix(MultiClassScaryCatScreener.ModelNamePrefix) && $0.hasSuffix(MultiClassScaryCatScreener.ModelNameSuffix) }
+        } catch {
+            // Resourcesディレクトリが見つからない場合に発生
+            throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
+        }
+
+        guard modelFiles.count == 1, let modelFileNameWithExtension = modelFiles.first else {
+            // エラーメッセージは明確化のため詳細に記述
+            let errorDetail = "Resourcesディレクトリ内に、期待されるコンパイル済みモデルファイル（例: \(MultiClassScaryCatScreener.ModelNamePrefix)_vX\(MultiClassScaryCatScreener.ModelNameSuffix)）が1つだけ存在するはずですが、\(modelFiles.count)個見つかりました。"
+            throw ScaryCatScreenerError.modelNotFound(details: errorDetail).asNSError()
+        }
+        
+        // モデルファイルのURLを生成
+        let modelURL = resourcesPath.appendingPathComponent(modelFileNameWithExtension)
+
+        // 念のためファイルの物理的存在を確認
+        if !fileManager.fileExists(atPath: modelURL.path) {
+            throw ScaryCatScreenerError.modelNotFound(details: "モデルファイル \(modelFileNameWithExtension) が期待されるパス \(modelURL.path) に見つかりません。").asNSError()
         }
 
         do {
             let mlModel = try MLModel(contentsOf: modelURL)
             let visionModel = try VNCoreMLModel(for: mlModel)
-            screeningModel = visionModel
+            multiClassScreeningModel = visionModel
         } catch {
             throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
         }
@@ -57,7 +80,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
                         "[MultiClassScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
                     )
                 }
-                isSafeForCurrentImage = false // CGImageにできないものは安全ではない
+                isSafeForCurrentImage = false // CGImageに変換できない場合は安全でないと判断
                 // この画像に対するレポート（空の検出結果）を出力
                 let reportForSkippedImage = MultiClassScreeningReport(decisiveDetection: nil, allClassifications: [])
                 if enableLogging {
@@ -68,15 +91,15 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            let request = VNCoreMLRequest(model: screeningModel)
+            let request = VNCoreMLRequest(model: multiClassScreeningModel)
             request.usesCPUOnly = true
 
             do {
                 try handler.perform([request])
                 if let results = request.results as? [VNClassificationObservation] {
-                    currentImageAllObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
+                    currentImageAllObservations = results.map { (identifier: $0.className, confidence: $0.confidence) }
                     currentImageDecisiveDetection = currentImageAllObservations.first { tuple in
-                        tuple.identifier.lowercased() != "safe" && tuple.confidence >= probabilityThreshold
+                        tuple.className.lowercased() != "safe" && tuple.confidence >= probabilityThreshold
                     }
                 }
                 // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
@@ -94,7 +117,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             }
 
             if currentImageDecisiveDetection != nil {
-                isSafeForCurrentImage = false // 何か検出されたら安全ではない
+                isSafeForCurrentImage = false // 有害なコンテンツが検出された場合は安全でないと判断
             }
 
             processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
