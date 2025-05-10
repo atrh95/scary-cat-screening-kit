@@ -3,7 +3,7 @@ import UIKit
 import Vision
 import SCSInterface
 
-public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
+public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
     private static let UnifiedModelName = "ScaryCatScreeningML"
 
     /// スクリーニングモデル
@@ -59,7 +59,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
                 }
                 isSafeForCurrentImage = false // CGImageにできないものは安全ではない
                 // この画像に対するレポート（空の検出結果）を出力
-                let reportForSkippedImage = ScreeningReport(decisiveDetection: nil, allClassifications: [])
+                let reportForSkippedImage = MultiClassScreeningReport(decisiveDetection: nil, allClassifications: [])
                 if enableLogging {
                     reportForSkippedImage.printReport()
                 }
@@ -85,7 +85,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
             }
 
             // 各画像に対するレポートを作成し、コンソールに出力
-            let reportForCurrentImage = ScreeningReport(
+            let reportForCurrentImage = MultiClassScreeningReport(
                 decisiveDetection: currentImageDecisiveDetection,
                 allClassifications: currentImageAllObservations.sorted { $0.confidence > $1.confidence }
             )

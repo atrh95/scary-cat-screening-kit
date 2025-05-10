@@ -1,6 +1,6 @@
 import UIKit
 
-public protocol ScaryCatScreenerInterface {
+public protocol ScaryCatScreenerProcotol {
     func screen(
         images: [UIImage],
         probabilityThreshold: Float,
