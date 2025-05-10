@@ -1,13 +1,13 @@
 import Foundation
 
-// ScaryCatScreenerで発生しうるエラー定義
-public enum ScaryCatScreenerError: Error, LocalizedError {
+// MultiClassScaryCatScreenerで発生しうるエラー定義
+public enum MultiClassScaryCatScreenerError: Error, LocalizedError {
     case resourceBundleNotFound
     case modelLoadingFailed(underlyingError: Error? = nil)
     case invalidImage
     case predictionFailed(underlyingError: Error? = nil)
 
-    public static let errorDomain = "com.akitorahayashi.ScaryCatScreener.ErrorDomain"
+    public static let errorDomain = "com.akitorahayashi.MultiClassScaryCatScreener.ErrorDomain"
 
     // ローカライズされたエラーメッセージ
     public var errorDescription: String? {
@@ -54,4 +54,4 @@ public enum ScaryCatScreenerError: Error, LocalizedError {
         }
         return NSError(domain: Self.errorDomain, code: errorCode, userInfo: userInfo)
     }
-}
+} 

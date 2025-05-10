@@ -1,6 +1,5 @@
-import CatScreeningKit
+import ScaryCatScreeningKit
 import Combine
-import CSKShared
 import SwiftUI
 
 struct CatImageResponse: Decodable, Identifiable {

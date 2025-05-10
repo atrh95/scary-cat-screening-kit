@@ -4,34 +4,38 @@
 import PackageDescription
 
 let package = Package(
-    name: "CatScreeningKit",
+    name: "ScaryCatScreeningKit",
     platforms: [
         .iOS(.v15),
     ],
     products: [
         .library(
-            name: "CatScreeningKit",
-            targets: ["CatScreeningKit"]
+            name: "ScaryCatScreeningKit",
+            targets: ["ScaryCatScreeningKit", "OvRScaryCatScreener"]
         ),
     ],
     targets: [
         .target(
-            name: "CatScreeningKit",
-            dependencies: ["ScaryCatScreener"],
-            path: "Sources/CatScreeningKit"
+            name: "ScaryCatScreeningKit",
+            dependencies: ["MultiClassScaryCatScreener", "OvRScaryCatScreener"],
+            path: "Sources/ScaryCatScreeningKit"
         ),
         .target(
-            name: "ScaryCatScreener",
+            name: "MultiClassScaryCatScreener",
             dependencies: [],
-            path: "Sources/ScaryCatScreener",
+            path: "Sources/MultiClassScaryCatScreener",
             resources: [
                 .process("Resources/ScaryCatScreeningML.mlmodel"),
-                .copy("SCARY_CAT_SCREENER.md"), // ドキュメントファイル (リソースとしてコピー)
             ]
         ),
+        .target(
+            name: "OvRScaryCatScreener",
+            dependencies: [],
+            path: "Sources/OvRScaryCatScreener"
+        ),
         .testTarget(
-            name: "CatScreeningKitTests",
-            dependencies: ["CatScreeningKit", "ScaryCatScreener"], // テストターゲットはScaryCatScreenerにも直接依存
+            name: "ScaryCatScreeningKitTests",
+            dependencies: ["ScaryCatScreeningKit", "MultiClassScaryCatScreener"],
             path: "Tests/ScaryCatScreenerTests"
         ),
     ],

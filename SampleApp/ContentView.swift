@@ -1,7 +1,5 @@
 import SwiftUI
-
-// import PhotosUI // PhotosPickerが不要になったためコメントアウトまたは削除
-import CatScreeningKit
+import ScaryCatScreeningKit
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()

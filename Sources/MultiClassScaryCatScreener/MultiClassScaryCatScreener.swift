@@ -2,7 +2,7 @@ import CoreML
 import UIKit
 import Vision
 
-public actor ScaryCatScreener {
+public actor MultiClassScaryCatScreener {
     private static let UnifiedModelName = "ScaryCatScreeningML"
 
     /// スクリーニングモデル
@@ -11,15 +11,15 @@ public actor ScaryCatScreener {
     /// モデルをロード (失敗時はエラー)
     public init() throws {
         guard let resourceURL = Bundle.module.resourceURL else {
-            print("[ScaryCatScreener] [ERROR] Resource bundle not found.")
-            throw ScaryCatScreenerError.resourceBundleNotFound
+            print("[MultiClassScaryCatScreener] [ERROR] Resource bundle not found.")
+            throw MultiClassScaryCatScreenerError.resourceBundleNotFound
         }
 
-        let modelURL = resourceURL.appendingPathComponent("\(ScaryCatScreener.UnifiedModelName).mlmodelc")
+        let modelURL = resourceURL.appendingPathComponent("\(MultiClassScaryCatScreener.UnifiedModelName).mlmodelc")
 
         if !FileManager.default.fileExists(atPath: modelURL.path) {
-            print("[ScaryCatScreener] [ERROR] Model file not found at \(modelURL.path).")
-            throw ScaryCatScreenerError.modelLoadingFailed()
+            print("[MultiClassScaryCatScreener] [ERROR] Model file not found at \(modelURL.path).")
+            throw MultiClassScaryCatScreenerError.modelLoadingFailed()
         }
 
         do {
@@ -27,8 +27,8 @@ public actor ScaryCatScreener {
             let visionModel = try VNCoreMLModel(for: mlModel)
             screeningModel = visionModel
         } catch {
-            print("[ScaryCatScreener] [ERROR] Failed to load model '\(ScaryCatScreener.UnifiedModelName)': \(error)")
-            throw ScaryCatScreenerError.modelLoadingFailed(underlyingError: error)
+            print("[MultiClassScaryCatScreener] [ERROR] Failed to load model '\(MultiClassScaryCatScreener.UnifiedModelName)': \(error)")
+            throw MultiClassScaryCatScreenerError.modelLoadingFailed(underlyingError: error)
         }
     }
 
@@ -56,7 +56,7 @@ public actor ScaryCatScreener {
             guard let cgImage = image.cgImage else {
                 if enableLogging {
                     print(
-                        "[ScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
+                        "[MultiClassScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
                     )
                 }
                 isSafeForCurrentImage = false // CGImageにできないものは安全ではない
@@ -85,11 +85,11 @@ public actor ScaryCatScreener {
             } catch {
                 if enableLogging {
                     print(
-                        "[ScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate."
+                        "[MultiClassScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate."
                     )
                 }
                 // Visionリクエスト失敗はメソッド全体のエラーとする
-                throw ScaryCatScreenerError.predictionFailed(underlyingError: error)
+                throw MultiClassScaryCatScreenerError.predictionFailed(underlyingError: error)
             }
 
             // 各画像に対するレポートを作成し、コンソールに出力
