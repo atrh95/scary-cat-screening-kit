@@ -20,7 +20,7 @@ public struct MultiClassScreeningReport: Sendable, SCSReporterProtocol {
         print("[Decisive Detection]")
         if let detection = decisiveDetection {
             let confidencePercent = String(format: "%.1f%%", detection.confidence * 100)
-            print("  ClassName: \(detection.className)")
+            print("  ClassName: \(detection.identifier)")
             print("  Confidence: \(confidencePercent)")
         } else {
             print("  None")
@@ -32,7 +32,7 @@ public struct MultiClassScreeningReport: Sendable, SCSReporterProtocol {
         } else {
             for (index, classification) in allClassifications.enumerated() {
                 let confidencePercent = String(format: "%.1f%%", classification.confidence * 100)
-                print("  \(index + 1). ClassName: \(classification.className), Confidence: \(confidencePercent)")
+                print("  \(index + 1). ClassName: \(classification.identifier), Confidence: \(confidencePercent)")
             }
         }
         print("----------------------")

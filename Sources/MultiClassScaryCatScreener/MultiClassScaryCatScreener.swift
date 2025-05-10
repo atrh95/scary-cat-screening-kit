@@ -31,9 +31,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
         }
 
         guard modelFiles.count == 1, let modelFileNameWithExtension = modelFiles.first else {
-            // エラーメッセージは明確化のため詳細に記述
-            let errorDetail = "Resourcesディレクトリ内に、期待されるコンパイル済みモデルファイル（例: \(MultiClassScaryCatScreener.ModelNamePrefix)_vX\(MultiClassScaryCatScreener.ModelNameSuffix)）が1つだけ存在するはずですが、\(modelFiles.count)個見つかりました。"
-            throw ScaryCatScreenerError.modelNotFound(details: errorDetail).asNSError()
+            throw ScaryCatScreenerError.modelNotFound.asNSError()
         }
         
         // モデルファイルのURLを生成
@@ -41,7 +39,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
 
         // 念のためファイルの物理的存在を確認
         if !fileManager.fileExists(atPath: modelURL.path) {
-            throw ScaryCatScreenerError.modelNotFound(details: "モデルファイル \(modelFileNameWithExtension) が期待されるパス \(modelURL.path) に見つかりません。").asNSError()
+            throw ScaryCatScreenerError.modelNotFound.asNSError()
         }
 
         do {
@@ -97,9 +95,9 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             do {
                 try handler.perform([request])
                 if let results = request.results as? [VNClassificationObservation] {
-                    currentImageAllObservations = results.map { (identifier: $0.className, confidence: $0.confidence) }
+                    currentImageAllObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
                     currentImageDecisiveDetection = currentImageAllObservations.first { tuple in
-                        tuple.className.lowercased() != "safe" && tuple.confidence >= probabilityThreshold
+                        tuple.confidence >= probabilityThreshold
                     }
                 }
                 // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま

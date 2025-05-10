@@ -3,6 +3,7 @@ import Foundation
 public enum ScaryCatScreenerError: Error {
     case resourceBundleNotFound
     case modelLoadingFailed(originalError: Error? = nil)
+    case modelNotFound
     case predictionFailed(originalError: Error? = nil)
 
     public static let errorDomain = "com.ScaryCatScreeningKit.SCSInterface.Error"
@@ -25,8 +26,12 @@ public enum ScaryCatScreenerError: Error {
             } else {
                 userInfo[NSLocalizedFailureReasonErrorKey] = "The model file might be missing or inaccessible, with no further details."
             }
-        case .predictionFailed(let originalError):
+        case .modelNotFound:
             code = 3
+            userInfo[NSLocalizedDescriptionKey] = "The ML model file was not found."
+            userInfo[NSLocalizedFailureReasonErrorKey] = "The specified model file does not exist at the expected location."
+        case .predictionFailed(let originalError):
+            code = 4
             userInfo[NSLocalizedDescriptionKey] = "An error occurred during the image screening prediction process."
             if let originalError = originalError {
                 userInfo[NSLocalizedFailureReasonErrorKey] = "There was an issue with the Vision framework request or processing its results."

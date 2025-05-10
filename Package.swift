@@ -30,7 +30,7 @@ let package = Package(
             dependencies: ["SCSInterface"],
             path: "Sources/MultiClassScaryCatScreener",
             resources: [
-                .process("Resources/ScaryCatScreeningML.mlmodel"),
+                .process("Resources/ScaryCatScreeningML_MultiClass_v2.mlmodel"),
             ]
         ),
         .target(

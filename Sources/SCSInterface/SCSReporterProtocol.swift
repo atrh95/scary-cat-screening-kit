@@ -1,7 +1,7 @@
 import Foundation
 
 /// Classificationタプルの型エイリアス
-public typealias ClassResultTuple = (className: String, confidence: Float)
+public typealias ClassResultTuple = (identifier: String, confidence: Float)
 
 /// スクリーニングレポートのインターフェース
 public protocol SCSReporterProtocol {
