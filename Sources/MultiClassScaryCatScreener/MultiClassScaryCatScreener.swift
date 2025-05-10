@@ -3,12 +3,16 @@ import SCSInterface
 import UIKit
 import Vision
 
+private struct SendableModelWrapper: @unchecked Sendable {
+    let coreMLModel: VNCoreMLModel
+}
+
 public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
     private static let ModelNamePrefix = "ScaryCatScreeningML_MultiClass"
     private static let ModelNameSuffix = ".mlmodelc"
 
     /// スクリーニングモデル
-    private let multiClassScreeningModel: VNCoreMLModel
+    private let multiClassScreeningModel: SendableModelWrapper
 
     /// モデルをロード (失敗時はエラー)
     public init() throws {
@@ -53,7 +57,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
         do {
             let mlModel = try MLModel(contentsOf: modelURL)
             let visionModel = try VNCoreMLModel(for: mlModel)
-            multiClassScreeningModel = visionModel
+            multiClassScreeningModel = SendableModelWrapper(coreMLModel: visionModel)
         } catch {
             throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
         }
@@ -101,8 +105,9 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
                     }
 
                     let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-                    let request = VNCoreMLRequest(model: self.multiClassScreeningModel) // Added self.
-                    request.usesCPUOnly = true
+                    // MODIFIED: Access the wrapped model after awaiting the Sendable wrapper
+                    let screenerModelProperty = self.multiClassScreeningModel
+                    let request = VNCoreMLRequest(model: screenerModelProperty.coreMLModel)
 
                     do {
                         try handler.perform([request])
@@ -149,7 +154,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
         }
 
         // 安全な画像のみを元の順序でフィルタリングして返す
-        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(\\.isSafe).map(\\.image)
+        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(\.isSafe).map(\.image)
         return safeImages
     }
 }

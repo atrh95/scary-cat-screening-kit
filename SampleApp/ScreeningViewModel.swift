@@ -1,5 +1,6 @@
 import Combine
 import ScaryCatScreeningKit
+import SCSInterface
 import SwiftUI
 
 struct CatImageResponse: Decodable, Identifiable {
@@ -10,37 +11,58 @@ struct CatImageResponse: Decodable, Identifiable {
 }
 
 @MainActor
-final class ContentViewModel: ObservableObject {
+final class ScreeningViewModel: ObservableObject {
     @Published var fetchedImages: [UIImage] = [] // APIから取得・ダウンロードした画像
     @Published var safeImagesForDisplay: [UIImage] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var screeningSummary: String = ""
 
-    private let screener: MultiClassScaryCatScreener?
+    private var screener: ScaryCatScreenerProtocol?
+    private let screenerType: ScreenerType
     private let catApiBaseUrl = "https://api.thecatapi.com/v1/images/search?limit=10"
 
-    init() {
-        do {
-            screener = try MultiClassScaryCatScreener()
-        } catch let error as NSError {
-            screener = nil
-            let errorDesc = "スクリーナーの初期化に失敗: \(error.localizedDescription) (コード: \(error.code), ドメイン: \(error.domain))"
-            errorMessage = errorDesc
-            screeningSummary = errorDesc // 初期化エラーもサマリーに表示
-            if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
-                print("初期化エラーの原因: \(underlying.localizedDescription)")
+    init(screenerType: ScreenerType) {
+        self.screenerType = screenerType
+        isLoading = true
+        screeningSummary = "\(screenerType.rawValue) スクリーナーを初期化中..."
+
+        Task {
+            do {
+                switch screenerType {
+                    case .multiClass:
+                        self.screener = try MultiClassScaryCatScreener()
+                        self.screeningSummary = "\(screenerType.rawValue) スクリーナーの準備ができました。"
+                    case .ovr:
+                        self.screener = try await OvRScaryCatScreener()
+                        self.screeningSummary = "\(screenerType.rawValue) スクリーナーの準備ができました。"
+                }
+                self.errorMessage = nil
+            } catch let error as NSError {
+                self.screener = nil
+                let errorDesc =
+                    "\(screenerType.rawValue) スクリーナーの初期化に失敗: \(error.localizedDescription) (コード: \(error.code), ドメイン: \(error.domain))"
+                self.errorMessage = errorDesc
+                self.screeningSummary = errorDesc
+                if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
+                    print("\(screenerType.rawValue) 初期化エラーの原因: \(underlying.localizedDescription)")
+                }
             }
+            self.isLoading = false
         }
     }
 
     // MARK: - 画像の取得とスクリーニングフロー
 
     func fetchAndScreenImagesFromCatAPI(count: Int = 5) {
-        guard let screener else {
-            errorMessage = "スクリーナーが初期化されていません。"
-            screeningSummary = "エラー: スクリーナー未初期化"
-            isLoading = false
+        guard !isLoading, let screener else {
+            if self.screener == nil, !isLoading {
+                errorMessage = "スクリーナーがまだ初期化されていません、または初期化に失敗しました。"
+                screeningSummary = "エラー: スクリーナー未準備"
+            } else if isLoading {
+                errorMessage = "スクリーナー初期化中または他の処理が実行中です。"
+                screeningSummary = "処理中..."
+            }
             return
         }
 
@@ -125,24 +147,24 @@ final class ContentViewModel: ObservableObject {
     }
 
     private func handleFetchAndScreenError(_ error: Error) {
+        var finalErrorMessage: String
+        var finalScreeningSummary: String
+
         switch error {
             case let decodingError as DecodingError:
-                errorMessage = "APIレスポンスの解析エラー: \(decodingError.localizedDescription)"
-                screeningSummary = "エラー: APIレスポンス解析失敗"
+                finalErrorMessage = "APIレスポンスの解析エラー: \(decodingError.localizedDescription)"
+                finalScreeningSummary = "エラー: APIレスポンス解析失敗"
             default:
-                var finalErrorMessage = "予期せぬエラー: \(error.localizedDescription)"
-                var finalScreeningSummary = "エラー: 不明な問題発生"
-
-                if let nsError = error as? NSError {
-                    finalErrorMessage =
-                        "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
-                    finalScreeningSummary = "エラー (ドメイン: \(nsError.domain), コード: \(nsError.code))"
-                    if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
-                        print("原因: \(underlying.localizedDescription)")
-                    }
+                let nsError = error as NSError
+                
+                finalErrorMessage = "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
+                finalScreeningSummary = "エラー (ドメイン: \(nsError.domain), コード: \(nsError.code))"
+                
+                if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+                    print("原因: \(underlying.localizedDescription)")
                 }
-                errorMessage = finalErrorMessage
-                screeningSummary = finalScreeningSummary
         }
+        errorMessage = finalErrorMessage
+        screeningSummary = finalScreeningSummary
     }
 }

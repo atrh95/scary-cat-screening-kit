@@ -5,7 +5,7 @@ import Vision
 
 public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
     // モデルとその元のファイルURL（識別子用）を格納
-    private struct OvRModelContainer {
+    private struct OvRModelContainer: @unchecked Sendable {
         let model: VNCoreMLModel
         let identifier: String
     }
