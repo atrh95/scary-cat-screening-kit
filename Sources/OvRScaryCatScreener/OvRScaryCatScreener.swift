@@ -133,6 +133,7 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
                         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
                         let request = VNCoreMLRequest(model: container.model)
                         request.usesCPUOnly = true
+                        request.imageCropAndScaleOption = .scaleFit
                         var allObservationsForCurrentModel: [VNClassificationObservation] = []
                         var specificFlaggingObservation: VNClassificationObservation? = nil
 
