@@ -12,15 +12,13 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
     /// モデルをロード (失敗時はエラー)
     public init() throws {
         guard let resourceURL = Bundle.module.resourceURL else {
-            print("[MultiClassScaryCatScreener] [ERROR] Resource bundle not found.")
-            throw MultiClassScaryCatScreenerError.resourceBundleNotFound
+            throw ScaryCatScreenerError.resourceBundleNotFound.asNSError()
         }
 
         let modelURL = resourceURL.appendingPathComponent("\(MultiClassScaryCatScreener.UnifiedModelName).mlmodelc")
 
         if !FileManager.default.fileExists(atPath: modelURL.path) {
-            print("[MultiClassScaryCatScreener] [ERROR] Model file not found at \(modelURL.path).")
-            throw MultiClassScaryCatScreenerError.modelLoadingFailed()
+            throw ScaryCatScreenerError.modelLoadingFailed(originalError: nil).asNSError()
         }
 
         do {
@@ -28,8 +26,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
             let visionModel = try VNCoreMLModel(for: mlModel)
             screeningModel = visionModel
         } catch {
-            print("[MultiClassScaryCatScreener] [ERROR] Failed to load model '\(MultiClassScaryCatScreener.UnifiedModelName)': \(error)")
-            throw MultiClassScaryCatScreenerError.modelLoadingFailed(underlyingError: error)
+            throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
         }
     }
 
@@ -84,13 +81,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerInterface {
                 }
                 // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
             } catch {
-                if enableLogging {
-                    print(
-                        "[MultiClassScaryCatScreener] [ERROR] Vision request failed for an image: \(error). This error will propagate."
-                    )
-                }
-                // Visionリクエスト失敗はメソッド全体のエラーとする
-                throw MultiClassScaryCatScreenerError.predictionFailed(underlyingError: error)
+                throw ScaryCatScreenerError.predictionFailed(originalError: error).asNSError()
             }
 
             // 各画像に対するレポートを作成し、コンソールに出力
