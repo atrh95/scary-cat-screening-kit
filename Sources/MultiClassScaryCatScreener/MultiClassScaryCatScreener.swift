@@ -53,7 +53,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
         do {
             let mlModel = try MLModel(contentsOf: modelURL)
             let visionModel = try VNCoreMLModel(for: mlModel)
-            self.multiClassScreeningModel = visionModel
+            multiClassScreeningModel = visionModel
         } catch {
             throw ScaryCatScreenerError.modelLoadingFailed(originalError: error).asNSError()
         }
@@ -74,11 +74,11 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
         enableLogging: Bool = false
     ) async throws -> [UIImage] {
         // MODIFIED: Changed back to simple array for sequential processing results
-        var processingResults: [(originalImage: UIImage, isSafe: Bool)] = [] 
+        var processingResults: [(originalImage: UIImage, isSafe: Bool)] = []
         // REMOVED: indexedProcessingResults.reserveCapacity(images.count)
 
         // MODIFIED: Changed back to sequential for loop instead of TaskGroup
-        for image in images { 
+        for image in images {
             var isSafeForCurrentImage = true // デフォルトで安全と仮定
             var currentImageAllObservations: [ClassResultTuple] = []
             var currentImageDecisiveDetection: ClassResultTuple?
@@ -99,7 +99,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
             }
 
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            let request = VNCoreMLRequest(model: self.multiClassScreeningModel)
+            let request = VNCoreMLRequest(model: multiClassScreeningModel)
             request.usesCPUOnly = true // ADDED: Restored this line
 
             do {
@@ -112,11 +112,14 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
                 }
             } catch {
                 if enableLogging {
-                     print("[MultiClassScaryCatScreener] [ERROR] Vision request failed for an image: \(error.localizedDescription). Marking as not safe.")
+                    print(
+                        "[MultiClassScaryCatScreener] [ERROR] Vision request failed for an image: \(error.localizedDescription). Marking as not safe."
+                    )
                 }
                 // For sequential processing, if one image fails, we might still mark it unsafe and continue or rethrow.
                 // Original TaskGroup behavior was to throw and cancel. Here, we'll mark unsafe and continue.
-                // Or, to match original intent of throwing on error, uncomment the line below and remove append/continue for error.
+                // Or, to match original intent of throwing on error, uncomment the line below and remove
+                // append/continue for error.
                 throw ScaryCatScreenerError.predictionFailed(originalError: error).asNSError()
             }
 
@@ -135,7 +138,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
         }
 
         // MODIFIED: Filter and map from the simple processingResults array
-        let safeImages = processingResults.filter { $0.isSafe }.map { $0.originalImage }
+        let safeImages = processingResults.filter(\.isSafe).map(\.originalImage)
         return safeImages
     }
 }

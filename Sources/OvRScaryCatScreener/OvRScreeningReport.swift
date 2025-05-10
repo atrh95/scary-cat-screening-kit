@@ -69,10 +69,10 @@ public struct OvRScreeningReport: Sendable, SCSReporterProtocol {
                 }
                 // 最適なRest信頼度の情報をここに移動
                 if let restInfo = restDetection {
-                     let confidencePercent = String(format: "%.3f%%", restInfo.confidence * 100)
-                     print("  レポート用に選択された最適な 'Rest' 信頼度： \(confidencePercent) （クラス： '\(restInfo.identifier)'）")
+                    let confidencePercent = String(format: "%.3f%%", restInfo.confidence * 100)
+                    print("  レポート用に選択された最適な 'Rest' 信頼度： \(confidencePercent) （クラス： '\(restInfo.identifier)'）")
                 } else {
-                     print("  レポート用に選択された包括的な 'Rest' 分類はありません（見つからなかったか、ロジックが変更されました）。")
+                    print("  レポート用に選択された包括的な 'Rest' 分類はありません（見つからなかったか、ロジックが変更されました）。")
                 }
                 print("  -----------------------------") // 詳細ログと最終結果の区切り
             }

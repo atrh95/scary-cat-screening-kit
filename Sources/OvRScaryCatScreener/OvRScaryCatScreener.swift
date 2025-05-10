@@ -192,7 +192,10 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
                     for observation in output.allObservations {
                         if observation.identifier == "Rest" {
                             if bestRestDetection == nil || observation.confidence > bestRestDetection!.confidence {
-                                bestRestDetection = (identifier: observation.identifier, confidence: observation.confidence)
+                                bestRestDetection = (
+                                    identifier: observation.identifier,
+                                    confidence: observation.confidence
+                                )
                             }
                             break // This model found "Rest", so break the loop
                         }
@@ -202,15 +205,18 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
 
             // enableLogging is true only if detailed log outputs are included in the report
             var loggableOutputsForReport: [LoggableModelOutput]? = nil
-            if enableLogging && isSafeForCurrentImage { // Detailed log outputs are created only for safe images
+            if enableLogging, isSafeForCurrentImage { // Detailed log outputs are created only for safe images
                 loggableOutputsForReport = modelOutputs.map { processingOutput -> LoggableModelOutput in
                     let observations = processingOutput.allObservations.map { vnObservation -> (String, Float) in
                         return (className: vnObservation.identifier, confidence: vnObservation.confidence)
                     }
-                    return LoggableModelOutput(modelIdentifier: processingOutput.modelIdentifier, observations: observations)
+                    return LoggableModelOutput(
+                        modelIdentifier: processingOutput.modelIdentifier,
+                        observations: observations
+                    )
                 }
             }
-            
+
             // OvRScaryCatScreener side detailed log outputs are removed (OvRScreeningReport handles them)
 
             if enableLogging { // Detailed log outputs are included in the report only if enableLogging is true
@@ -218,10 +224,12 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
                     flaggingDetections: currentImageFlaggingDetections,
                     restDetection: bestRestDetection,
                     imageIndex: index + 1, // Always pass the index
-                    detailedLogOutputs: loggableOutputsForReport // Value is only present if enableLogging is true for safe images
+                    detailedLogOutputs: loggableOutputsForReport // Value is only present if enableLogging is true for
+                    // safe images
                 )
                 reportForCurrentImage.printReport()
-            } else if !isSafeForCurrentImage { // Even if enableLogging is false, a simple report is output for unsafe images
+            } else if !isSafeForCurrentImage {
+                // Even if enableLogging is false, a simple report is output for unsafe images
                 let reportForCurrentImage = OvRScreeningReport(
                     flaggingDetections: currentImageFlaggingDetections,
                     restDetection: nil, // Rest information is not needed for unsafe images
@@ -234,7 +242,7 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
             indexedProcessingResults.append((index: index, image: image, isSafe: isSafeForCurrentImage))
         }
 
-        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter { $0.isSafe }.map { $0.image }
+        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(\.isSafe).map(\.image)
         return safeImages
     }
 }

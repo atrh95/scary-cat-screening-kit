@@ -156,10 +156,11 @@ final class ScreeningViewModel: ObservableObject {
                 finalScreeningSummary = "エラー: APIレスポンス解析失敗"
             default:
                 let nsError = error as NSError
-                
-                finalErrorMessage = "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
+
+                finalErrorMessage =
+                    "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
                 finalScreeningSummary = "エラー (ドメイン: \(nsError.domain), コード: \(nsError.code))"
-                
+
                 if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
                     print("原因: \(underlying.localizedDescription)")
                 }

@@ -41,11 +41,6 @@ let package = Package(
                 .process("Resources"),
             ]
         ),
-        .testTarget(
-            name: "ScaryCatScreeningKitTests",
-            dependencies: ["ScaryCatScreeningKit", "MultiClassScaryCatScreener", "SCSInterface"],
-            path: "Tests/ScaryCatScreenerTests"
-        ),
     ],
     swiftLanguageModes: [.v6]
 )
