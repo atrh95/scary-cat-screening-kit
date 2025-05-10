@@ -4,35 +4,42 @@
 import PackageDescription
 
 let package = Package(
-    name: "CatScreeningKit",
+    name: "ScaryCatScreeningKit",
     platforms: [
         .iOS(.v15),
     ],
     products: [
         .library(
-            name: "CatScreeningKit",
-            targets: ["CatScreeningKit"]
+            name: "ScaryCatScreeningKit",
+            targets: ["ScaryCatScreeningKit", "OvRScaryCatScreener", "SCSInterface"]
         ),
     ],
     targets: [
         .target(
-            name: "CatScreeningKit",
-            dependencies: ["ScaryCatScreener"],
-            path: "Sources/CatScreeningKit"
+            name: "SCSInterface",
+            dependencies: [],
+            path: "Sources/SCSInterface"
         ),
         .target(
-            name: "ScaryCatScreener",
-            dependencies: [],
-            path: "Sources/ScaryCatScreener",
+            name: "ScaryCatScreeningKit",
+            dependencies: ["MultiClassScaryCatScreener", "OvRScaryCatScreener", "SCSInterface"],
+            path: "Sources/ScaryCatScreeningKit"
+        ),
+        .target(
+            name: "MultiClassScaryCatScreener",
+            dependencies: ["SCSInterface"],
+            path: "Sources/MultiClassScaryCatScreener",
             resources: [
-                .process("Resources/ScaryCatScreeningML.mlmodel"),
-                .copy("SCARY_CAT_SCREENER.md"), // ドキュメントファイル (リソースとしてコピー)
+                .process("Resources"),
             ]
         ),
-        .testTarget(
-            name: "CatScreeningKitTests",
-            dependencies: ["CatScreeningKit", "ScaryCatScreener"], // テストターゲットはScaryCatScreenerにも直接依存
-            path: "Tests/ScaryCatScreenerTests"
+        .target(
+            name: "OvRScaryCatScreener",
+            dependencies: ["SCSInterface"],
+            path: "Sources/OvRScaryCatScreener",
+            resources: [
+                .process("Resources"),
+            ]
         ),
     ],
     swiftLanguageModes: [.v6]

@@ -1,17 +1,14 @@
 # mint run xcodegen generate
 
-name: CatScreeningKit
+name: SampleApp
 options:
-  bundleIdPrefix: com.akitorahayashi.CatScreeningKit
-  # path: CatScreeningKit.xcodeproj # xcodegen は通常 project.yml と同じ場所に生成するため省略可
+  bundleIdPrefix: com.akitorahayashi.ScaryCatScreeningKit
   deploymentTarget:
     iOS: "13.0"
 
 packages:
-  # Package.swift を参照するためのXcodeGen内の識別名
-  CatScreeningKit:
+  ScaryCatScreeningKit:
     path: .
-#    product: CatScreeningKit # Package.swift 内の product 名と一致する場合、省略可
 
 schemes:
   SampleApp:
@@ -28,15 +25,15 @@ schemes:
       config: Release
 
   # For testing the library itself
-  CatScreeningKitTests:
+  ScaryCatScreeningKitTests:
     build:
       targets:
         # テストターゲットが依存するライブラリもビルドされる
-        CatScreeningKitTests: all
+        ScaryCatScreeningKitTests: all
     test:
       # 実行するテストターゲット
       targets:
-        - CatScreeningKitTests
+        - ScaryCatScreeningKitTests
 
 targets:
   SampleApp:
@@ -46,8 +43,8 @@ targets:
     sources:
       - path: SampleApp
     dependencies:
-      - package: CatScreeningKit # packagesセクションで定義した参照名
-        product: CatScreeningKit # Package.swift内のプロダクト名
+      - package: ScaryCatScreeningKit
+        product: ScaryCatScreeningKit
     info:
       path: SampleApp/Info.plist
       properties:
@@ -58,16 +55,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).SampleApp
 
-  CatScreeningKitTests:
+  ScaryCatScreeningKitTests:
     type: bundle.unit-test
     platform: iOS
     deploymentTarget: "15.0"
     sources:
-      - Tests/ScaryCatScreenerTests # テストソースパス
+      - Tests/ScaryCatScreenerTests
     dependencies:
-      - package: CatScreeningKit
+      - package: ScaryCatScreeningKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).CatScreeningKitTests
+        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).ScaryCatScreeningKitTests
         GENERATE_INFOPLIST_FILE: YES
-        TEST_HOST: "" # ライブラリテストのため空
+        TEST_HOST: "" # テストのため空
