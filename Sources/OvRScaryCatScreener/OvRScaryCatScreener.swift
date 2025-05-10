@@ -15,7 +15,7 @@ public actor OvRScaryCatScreener: ScaryCatScreenerProtocol {
 
     /// モデルをロード (失敗時はエラー)
     public init() async throws {
-        guard let resourceURL = Bundle.module.resourceURL?.appendingPathComponent("Resources") else {
+        guard let resourceURL = Bundle.module.resourceURL else {
             throw ScaryCatScreenerError.resourceBundleNotFound.asNSError()
         }
 
