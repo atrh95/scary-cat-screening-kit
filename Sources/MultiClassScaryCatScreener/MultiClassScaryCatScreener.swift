@@ -1,9 +1,9 @@
 import CoreML
+import SCSInterface
 import UIKit
 import Vision
-import SCSInterface
 
-public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
+public actor MultiClassScaryCatScreener: ScaryCatScreenerProtocol {
     private static let ModelNamePrefix = "ScaryCatScreeningML_MultiClass"
     private static let ModelNameSuffix = ".mlmodelc"
 
@@ -25,7 +25,11 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             // 指定されたパスのコンテンツを取得
             let contents = try fileManager.contentsOfDirectory(atPath: modelFilesPath.path)
             // コンパイル後の.mlmodelcファイルを検索対象とする
-            modelFiles = contents.filter { $0.hasPrefix(MultiClassScaryCatScreener.ModelNamePrefix) && $0.hasSuffix(MultiClassScaryCatScreener.ModelNameSuffix) }
+            modelFiles = contents
+                .filter {
+                    $0.hasPrefix(MultiClassScaryCatScreener.ModelNamePrefix) && $0
+                        .hasSuffix(MultiClassScaryCatScreener.ModelNameSuffix)
+                }
         } catch {
             // ディレクトリのコンテンツ取得に失敗した場合 (例: パスが存在しない、アクセス権限がない)
             // ここでは、モデルロード失敗として扱う
@@ -37,7 +41,7 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
             // 詳細なエラータイプを検討することも可能 (例: .modelNotFound, .multipleModelsFound)
             throw ScaryCatScreenerError.modelNotFound.asNSError()
         }
-        
+
         // モデルファイルの完全なURLを生成
         let modelURL = modelFilesPath.appendingPathComponent(modelFileNameWithExtension)
 
@@ -69,64 +73,83 @@ public actor MultiClassScaryCatScreener: ScaryCatScreenerProcotol {
         probabilityThreshold: Float = 0.65,
         enableLogging: Bool = false
     ) async throws -> [UIImage] {
-        var processingResults: [(originalImage: UIImage, isSafe: Bool)] = []
+        var indexedProcessingResults = [(index: Int, image: UIImage, isSafe: Bool)]()
+        indexedProcessingResults.reserveCapacity(images.count)
 
-        for image in images {
-            var isSafeForCurrentImage = true // デフォルトで安全と仮定
-            var currentImageAllObservations: [ClassResultTuple] = []
-            var currentImageDecisiveDetection: ClassResultTuple?
+        try await withThrowingTaskGroup(of: (index: Int, image: UIImage, isSafe: Bool).self) { group in
+            for (index, image) in images.enumerated() {
+                group.addTask {
+                    var isSafeForCurrentImage = true // デフォルトで安全と仮定
+                    var currentImageAllObservations: [ClassResultTuple] = []
+                    var currentImageDecisiveDetection: ClassResultTuple?
 
-            guard let cgImage = image.cgImage else {
-                if enableLogging {
-                    print(
-                        "[MultiClassScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
-                    )
-                }
-                isSafeForCurrentImage = false // CGImageに変換できない場合は安全でないと判断
-                // この画像に対するレポート（空の検出結果）を出力
-                let reportForSkippedImage = MultiClassScreeningReport(decisiveDetection: nil, allClassifications: [])
-                if enableLogging {
-                    reportForSkippedImage.printReport()
-                }
-                processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
-                continue
-            }
-
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            let request = VNCoreMLRequest(model: multiClassScreeningModel)
-            request.usesCPUOnly = true
-
-            do {
-                try handler.perform([request])
-                if let results = request.results as? [VNClassificationObservation] {
-                    currentImageAllObservations = results.map { (identifier: $0.identifier, confidence: $0.confidence) }
-                    currentImageDecisiveDetection = currentImageAllObservations.first { tuple in
-                        tuple.confidence >= probabilityThreshold
+                    guard let cgImage = image.cgImage else {
+                        if enableLogging {
+                            print(
+                                "[MultiClassScaryCatScreener] [ERROR] Failed to get CGImage for an image. Marking as not safe and skipping Vision processing for this image."
+                            )
+                        }
+                        // この画像に対するレポート（空の検出結果）を出力
+                        let reportForSkippedImage = MultiClassScreeningReport(
+                            decisiveDetection: nil,
+                            allClassifications: []
+                        )
+                        if enableLogging {
+                            reportForSkippedImage.printReport()
+                        }
+                        return (index, image, false) // CGImageに変換できない場合は安全でないと判断
                     }
+
+                    let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                    let request = VNCoreMLRequest(model: self.multiClassScreeningModel) // Added self.
+                    request.usesCPUOnly = true
+
+                    do {
+                        try handler.perform([request])
+                        if let results = request.results as? [VNClassificationObservation] {
+                            currentImageAllObservations = results.map { (
+                                identifier: $0.identifier,
+                                confidence: $0.confidence
+                            ) }
+                            currentImageDecisiveDetection = currentImageAllObservations.first { tuple in
+                                tuple.confidence >= probabilityThreshold
+                            }
+                        }
+                        // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
+                    } catch {
+                        // エラーが発生した場合、この画像は安全でないとみなし、エラーを再スローする
+                        // TaskGroupは最初のthrowでキャンセルされる
+                        if enableLogging {
+                            print(
+                                "[MultiClassScaryCatScreener] [ERROR] Vision request failed for an image: \\(error.localizedDescription). Marking as not safe."
+                            )
+                        }
+                        throw ScaryCatScreenerError.predictionFailed(originalError: error).asNSError()
+                    }
+
+                    // 各画像に対するレポートを作成し、コンソールに出力
+                    let reportForCurrentImage = MultiClassScreeningReport(
+                        decisiveDetection: currentImageDecisiveDetection,
+                        allClassifications: currentImageAllObservations.sorted { $0.confidence > $1.confidence }
+                    )
+                    if enableLogging {
+                        reportForCurrentImage.printReport()
+                    }
+
+                    if currentImageDecisiveDetection != nil {
+                        isSafeForCurrentImage = false // 有害なコンテンツが検出された場合は安全でないと判断
+                    }
+                    return (index, image, isSafeForCurrentImage)
                 }
-                // VNClassificationObservationへのキャスト失敗や結果が空の場合、decisiveDetectionはnilのまま
-            } catch {
-                throw ScaryCatScreenerError.predictionFailed(originalError: error).asNSError()
             }
 
-            // 各画像に対するレポートを作成し、コンソールに出力
-            let reportForCurrentImage = MultiClassScreeningReport(
-                decisiveDetection: currentImageDecisiveDetection,
-                allClassifications: currentImageAllObservations.sorted { $0.confidence > $1.confidence }
-            )
-            if enableLogging {
-                reportForCurrentImage.printReport()
+            for try await result in group {
+                indexedProcessingResults.append(result)
             }
-
-            if currentImageDecisiveDetection != nil {
-                isSafeForCurrentImage = false // 有害なコンテンツが検出された場合は安全でないと判断
-            }
-
-            processingResults.append((originalImage: image, isSafe: isSafeForCurrentImage))
         }
 
         // 安全な画像のみを元の順序でフィルタリングして返す
-        let safeImages = processingResults.filter(\.isSafe).map(\.originalImage)
+        let safeImages = indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(\\.isSafe).map(\\.image)
         return safeImages
     }
 }

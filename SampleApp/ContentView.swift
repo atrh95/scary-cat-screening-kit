@@ -1,5 +1,5 @@
-import SwiftUI
 import ScaryCatScreeningKit
+import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()

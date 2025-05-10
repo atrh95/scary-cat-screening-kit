@@ -10,10 +10,8 @@
 
 ### 1. インポート
 
-`MultiClassScaryCatScreener` を利用するSwiftファイルで、必要なモジュールをインポートします。
-
 ```swift
-import MultiClassScaryCatScreener
+import ScaryCatScreeningKit
 ```
 
 ### 2. 初期化
@@ -65,7 +63,6 @@ Task {
         // `screener` は初期化済みの MultiClassScaryCatScreener インスタンス
         let safeImages = try await screener.screen(
             images: uiImages, 
-            // 信頼度0.65以上の場合に画像を対応するカテゴリに分類し、弾く
             probabilityThreshold: 0.65, 
             enableLogging: true
         ) 

@@ -36,7 +36,10 @@ let package = Package(
         .target(
             name: "OvRScaryCatScreener",
             dependencies: ["SCSInterface"],
-            path: "Sources/OvRScaryCatScreener"
+            path: "Sources/OvRScaryCatScreener",
+            resources: [
+                .process("Resources"),
+            ]
         ),
         .testTarget(
             name: "ScaryCatScreeningKitTests",

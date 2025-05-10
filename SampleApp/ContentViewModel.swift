@@ -1,5 +1,5 @@
-import ScaryCatScreeningKit
 import Combine
+import ScaryCatScreeningKit
 import SwiftUI
 
 struct CatImageResponse: Decodable, Identifiable {
@@ -38,23 +38,23 @@ final class ContentViewModel: ObservableObject {
 
     func fetchAndScreenImagesFromCatAPI(count: Int = 5) {
         guard let screener else {
-            self.errorMessage = "スクリーナーが初期化されていません。"
-            self.screeningSummary = "エラー: スクリーナー未初期化"
-            self.isLoading = false
+            errorMessage = "スクリーナーが初期化されていません。"
+            screeningSummary = "エラー: スクリーナー未初期化"
+            isLoading = false
             return
         }
 
         guard let apiUrl = URL(string: "\(catApiBaseUrl)\(count)") else {
-            self.errorMessage = "無効なAPI URLです。"
-            self.screeningSummary = "エラー: API URL不正"
-            self.isLoading = false
+            errorMessage = "無効なAPI URLです。"
+            screeningSummary = "エラー: API URL不正"
+            isLoading = false
             return
         }
 
         isLoading = true
-        self.errorMessage = nil
-        self.fetchedImages = []
-        self.safeImagesForDisplay = []
+        errorMessage = nil
+        fetchedImages = []
+        safeImagesForDisplay = []
         screeningSummary = "猫APIから画像情報を取得中..."
 
         Task {
@@ -80,7 +80,7 @@ final class ContentViewModel: ObservableObject {
                 let safeImages = try await screener.screen(
                     images: downloadedImages,
                     probabilityThreshold: 0.65,
-                    enableLogging: false
+                    enableLogging: true
                 )
 
                 self.safeImagesForDisplay = safeImages
@@ -127,21 +127,22 @@ final class ContentViewModel: ObservableObject {
     private func handleFetchAndScreenError(_ error: Error) {
         switch error {
             case let decodingError as DecodingError:
-                self.errorMessage = "APIレスポンスの解析エラー: \(decodingError.localizedDescription)"
-                self.screeningSummary = "エラー: APIレスポンス解析失敗"
+                errorMessage = "APIレスポンスの解析エラー: \(decodingError.localizedDescription)"
+                screeningSummary = "エラー: APIレスポンス解析失敗"
             default:
                 var finalErrorMessage = "予期せぬエラー: \(error.localizedDescription)"
                 var finalScreeningSummary = "エラー: 不明な問題発生"
 
                 if let nsError = error as? NSError {
-                    finalErrorMessage = "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
+                    finalErrorMessage =
+                        "エラー: \(nsError.localizedDescription) (ドメイン: \(nsError.domain), コード: \(nsError.code))"
                     finalScreeningSummary = "エラー (ドメイン: \(nsError.domain), コード: \(nsError.code))"
                     if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
                         print("原因: \(underlying.localizedDescription)")
                     }
                 }
-                self.errorMessage = finalErrorMessage
-                self.screeningSummary = finalScreeningSummary
+                errorMessage = finalErrorMessage
+                screeningSummary = finalScreeningSummary
         }
     }
 }
