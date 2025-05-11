@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "ScaryCatScreeningKit",
+    name: "scary-cat-screening-kit",
     platforms: [
         .iOS(.v15),
     ],

@@ -1,10 +1,8 @@
 import SwiftUI
 
 struct ScreeningTestView: View {
-    // ScreenerType を受け取るためのプロパティ
     let screenerType: ScreenerType
 
-    // ContentViewModel を StateObject として保持。screenerType を渡して初期化
     @StateObject private var viewModel: ScreeningViewModel
 
     init(screenerType: ScreenerType) {
@@ -13,9 +11,6 @@ struct ScreeningTestView: View {
     }
 
     var body: some View {
-        // NavigationView は ContentView 側で TabView の各タブに適用するか、
-        // またはこのビュー自体が NavigationView を持つか検討。
-        // ここでは、各タブが独立したナビゲーションを持つように NavigationView を含める
         NavigationView {
             VStack(spacing: 16) {
                 Button(

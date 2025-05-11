@@ -24,17 +24,6 @@ schemes:
     archive:
       config: Release
 
-  # For testing the library itself
-  ScaryCatScreeningKitTests:
-    build:
-      targets:
-        # テストターゲットが依存するライブラリもビルドされる
-        ScaryCatScreeningKitTests: all
-    test:
-      # 実行するテストターゲット
-      targets:
-        - ScaryCatScreeningKitTests
-
 targets:
   SampleApp:
     type: application
@@ -54,17 +43,3 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).SampleApp
-
-  ScaryCatScreeningKitTests:
-    type: bundle.unit-test
-    platform: iOS
-    deploymentTarget: "15.0"
-    sources:
-      - Tests/ScaryCatScreenerTests
-    dependencies:
-      - package: ScaryCatScreeningKit
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).ScaryCatScreeningKitTests
-        GENERATE_INFOPLIST_FILE: YES
-        TEST_HOST: "" # テストのため空

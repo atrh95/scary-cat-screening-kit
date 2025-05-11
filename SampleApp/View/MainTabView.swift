@@ -10,9 +10,9 @@ struct MainTabView: View {
                         Label(
                             type.rawValue,
                             systemImage: type == .multiClass ? "list.bullet.rectangle" : "list.star"
-                        ) // アイコンは適当です
+                        )
                     }
-                    .tag(type) //  tag を追加してタブの識別を明確に
+                    .tag(type)
             }
         }
     }
