@@ -1,6 +1,5 @@
 import Combine
 import ScaryCatScreeningKit
-import SCSInterface
 import SwiftUI
 
 struct CatImageResponse: Decodable, Identifiable {
@@ -17,35 +16,31 @@ final class ScreeningViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var screeningSummary: String = ""
+    @Published var isScreenerReady: Bool = false
 
-    private var screener: ScaryCatScreenerProtocol?
-    private let screenerType: ScreenerType
+    private var screener: ScaryCatScreener?
     private let catApiBaseUrl = "https://api.thecatapi.com/v1/images/search?limit=10"
 
-    init(screenerType: ScreenerType) {
-        self.screenerType = screenerType
+    init() {
         isLoading = true
-        screeningSummary = "\(screenerType.rawValue) スクリーナーを初期化中..."
+        isScreenerReady = false
+        screeningSummary = "ScaryCatScreener を初期化中..."
 
         Task {
             do {
-                switch screenerType {
-                    case .multiClass:
-                        self.screener = try MultiClassScaryCatScreener()
-                        self.screeningSummary = "\(screenerType.rawValue) スクリーナーの準備ができました。"
-                    case .ovr:
-                        self.screener = try await OvRScaryCatScreener()
-                        self.screeningSummary = "\(screenerType.rawValue) スクリーナーの準備ができました。"
-                }
+                self.screener = try await ScaryCatScreener()
+                self.isScreenerReady = true
+                self.screeningSummary = "ScaryCatScreener の準備ができました。"
                 self.errorMessage = nil
             } catch let error as NSError {
                 self.screener = nil
+                self.isScreenerReady = false
                 let errorDesc =
-                    "\(screenerType.rawValue) スクリーナーの初期化に失敗: \(error.localizedDescription) (コード: \(error.code), ドメイン: \(error.domain))"
+                    "ScaryCatScreener の初期化に失敗: \(error.localizedDescription) (コード: \(error.code), ドメイン: \(error.domain))"
                 self.errorMessage = errorDesc
                 self.screeningSummary = errorDesc
                 if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
-                    print("\(screenerType.rawValue) 初期化エラーの原因: \(underlying.localizedDescription)")
+                    print("ScaryCatScreener 初期化エラーの原因: \(underlying.localizedDescription)")
                 }
             }
             self.isLoading = false
@@ -55,20 +50,23 @@ final class ScreeningViewModel: ObservableObject {
     // MARK: - 画像の取得とスクリーニングフロー
 
     func fetchAndScreenImagesFromCatAPI(count: Int = 5) {
-        guard !isLoading, let screener else {
-            if self.screener == nil, !isLoading {
+        guard !isLoading, let screener = self.screener, isScreenerReady else {
+            if !isScreenerReady && !isLoading {
                 errorMessage = "スクリーナーがまだ初期化されていません、または初期化に失敗しました。"
                 screeningSummary = "エラー: スクリーナー未準備"
-            } else if isLoading {
-                errorMessage = "スクリーナー初期化中または他の処理が実行中です。"
+            } else if isLoading && !isScreenerReady {
+                errorMessage = "スクリーナーの準備が完了するまでお待ちください。"
+                screeningSummary = "スクリーナー初期化中..."
+            } else if isLoading && isScreenerReady {
                 screeningSummary = "処理中..."
+                errorMessage = "他の処理が実行中です。"
             }
             return
         }
 
         guard let apiUrl = URL(string: "\(catApiBaseUrl)\(count)") else {
             errorMessage = "無効なAPI URLです。"
-            screeningSummary = "エラー: API URL不正"
+            screeningSummary = "エラー: API URLが不正"
             isLoading = false
             return
         }

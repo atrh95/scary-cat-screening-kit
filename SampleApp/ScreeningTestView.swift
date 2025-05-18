@@ -1,14 +1,7 @@
 import SwiftUI
 
 struct ScreeningTestView: View {
-    let screenerType: ScreenerType
-
-    @StateObject private var viewModel: ScreeningViewModel
-
-    init(screenerType: ScreenerType) {
-        self.screenerType = screenerType
-        _viewModel = StateObject(wrappedValue: ScreeningViewModel(screenerType: screenerType))
-    }
+    @StateObject private var viewModel = ScreeningViewModel()
 
     var body: some View {
         NavigationView {
@@ -22,17 +15,15 @@ struct ScreeningTestView: View {
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
-                                viewModel.isLoading && Mirror(reflecting: viewModel).children
-                                    .first(where: { $0.label == "screener" })?.value == nil ? Color
-                                    .orange : (viewModel.isLoading ? Color.gray : Color.cyan)
+                                viewModel.isLoading && !viewModel.isScreenerReady ? Color.orange :
+                                    (viewModel.isLoading ? Color.gray : Color.cyan)
                             )
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
                 )
                 .disabled(
-                    viewModel.isLoading || Mirror(reflecting: viewModel).children
-                        .first(where: { $0.label == "screener" })?.value == nil
+                    viewModel.isLoading || !viewModel.isScreenerReady
                 )
                 .padding(.horizontal)
                 .padding(.top)
@@ -57,8 +48,7 @@ struct ScreeningTestView: View {
 
                 if viewModel.isLoading {
                     ProgressView(
-                        Mirror(reflecting: viewModel).children.first(where: { $0.label == "screener" })?
-                            .value == nil ? "スクリーナー初期化中..." : "処理中..."
+                        !viewModel.isScreenerReady ? "スクリーナー初期化中..." : "処理中..."
                     )
                     .padding()
                 }
@@ -100,7 +90,7 @@ struct ScreeningTestView: View {
                 }
                 Spacer()
             }
-            .navigationTitle("\(screenerType.rawValue) Screener")
+            .navigationTitle("Image Screener")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if viewModel.isLoading {
@@ -112,6 +102,6 @@ struct ScreeningTestView: View {
     }
 
     static var previews: some View {
-        ScreeningTestView(screenerType: .multiClass)
+        ScreeningTestView()
     }
 }

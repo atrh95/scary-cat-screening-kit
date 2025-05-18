@@ -1,2 +1,0 @@
-@_exported import MultiClassScaryCatScreener
-@_exported import OvRScaryCatScreener
