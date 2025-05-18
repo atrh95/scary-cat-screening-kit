@@ -33,7 +33,7 @@ public struct ScreeningReport: Sendable {
     /// レポート内容をコンソールに出力
     public func printReport() {
         if let index = imageIndex {
-            print("[ScaryCatScreener] --- [画像 \\(index)] スクリーニングレポート ---")
+            print("[ScaryCatScreener] --- [画像 \(index)] スクリーニングレポート ---")
         } else {
             print("--- スクリーニングレポート ---")
         }
@@ -42,10 +42,10 @@ public struct ScreeningReport: Sendable {
             if let detailedOutputs = detailedLogOutputs, !detailedOutputs.isEmpty {
                 print("  詳細なモデル出力：")
                 for output in detailedOutputs {
-                    print("    モデル： \\(output.modelIdentifier)")
+                    print("    モデル： \(output.modelIdentifier)")
                     for observation in output.observations {
                         let confidencePercent = String(format: "%.3f%%", observation.confidence * 100)
-                        print("      クラス： \\(observation.className)、信頼度： \\(confidencePercent)")
+                        print("      クラス： \(observation.className)、信頼度： \(confidencePercent)")
                     }
                 }
                  print("  -----------------------------")

@@ -20,13 +20,13 @@ public struct TriggeringDetection: Sendable {
 public struct ScreeningOutput: Sendable {
     /// 実行された全てのモデルからの全ての観測結果。
     /// Key: モデル識別子, Value: そのモデルの観測結果リスト。
-    public let allModelObservations: [String: [VNClassificationObservation]]
+    public let allModelObservations: [String: [ClassResultTuple]]
 
     /// 画像が安全でないとフラグ付けされる原因となった特定の検出結果 (存在する場合)。
     public let flaggingDetection: TriggeringDetection?
 
     public init(
-        allModelObservations: [String: [VNClassificationObservation]],
+        allModelObservations: [String: [ClassResultTuple]],
         flaggingDetection: TriggeringDetection? = nil
     ) {
         self.allModelObservations = allModelObservations

@@ -39,10 +39,7 @@ public actor ScaryCatScreener {
 
             var modelFileURLs: [URL] = []
             for case let fileURL as URL in filePaths where fileURL.pathExtension == "mlmodelc" {
-                // OvRModels ディレクトリ内を参照していることを確認
-                if fileURL.path.contains("/OvRModels/") {
-                    modelFileURLs.append(fileURL)
-                }
+                modelFileURLs.append(fileURL)
             }
             
             if modelFileURLs.isEmpty {
@@ -159,15 +156,15 @@ public actor ScaryCatScreener {
             indexedProcessingResults.append((index: index, image: image, isSafe: isSafeForCurrentImage))
         }
 
-        return indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter(.isSafe).map(.image)
+        return indexedProcessingResults.sorted(by: { $0.index < $1.index }).filter { $0.isSafe }.map { $0.image }
     }
 
     // MARK: - Screening Logic
     private func performScreening(on cgImage: CGImage, probabilityThreshold: Float) async throws -> ScreeningOutput {
-        var allResultsForImage: [String: [VNClassificationObservation]] = [:]
+        var allResultsForImage: [String: [ClassResultTuple]] = [:]
         var identifiedFlaggingDetection: TriggeringDetection? = nil
 
-        await withTaskGroup(of: (modelId: String, observations: [VNClassificationObservation]?).self) { group in
+        await withTaskGroup(of: (modelId: String, observations: [ClassResultTuple]?).self) { group in
             for container in self.ovrModels {
                 group.addTask {
                     let request = VNCoreMLRequest(model: container.model)
@@ -179,7 +176,9 @@ public actor ScaryCatScreener {
                         guard let observations = request.results as? [VNClassificationObservation] else {
                             return (container.identifier, nil)
                         }
-                        return (container.identifier, observations)
+                        // VNClassificationObservationをClassResultTupleに変換
+                        let mappedObservations = observations.map { ClassResultTuple(identifier: $0.identifier, confidence: $0.confidence) }
+                        return (container.identifier, mappedObservations)
                     } catch {
                         print("[ScaryCatScreener] [Error] Vision request failed for model (container.identifier): (error.localizedDescription)")
                         return (container.identifier, nil)
@@ -188,11 +187,11 @@ public actor ScaryCatScreener {
             }
 
             for await result in group {
-                guard let observations = result.observations else { continue }
-                allResultsForImage[result.modelId] = observations
+                guard let mappedObservations = result.observations else { continue }
+                allResultsForImage[result.modelId] = mappedObservations
 
                 if identifiedFlaggingDetection == nil {
-                    if let problematicObs = observations.first(where: { $0.confidence >= probabilityThreshold && $0.identifier != "Rest" }) {
+                    if let problematicObs = mappedObservations.first(where: { $0.confidence >= probabilityThreshold && $0.identifier != "Rest" }) {
                         identifiedFlaggingDetection = TriggeringDetection(
                             modelIdentifier: result.modelId,
                             detection: (identifier: problematicObs.identifier, confidence: problematicObs.confidence)
