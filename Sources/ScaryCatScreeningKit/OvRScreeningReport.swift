@@ -1,5 +1,4 @@
 import Foundation
-import SCSInterface
 
 /// 個々のモデルによる検出情報
 public struct ModelDetectionInfo: Sendable {

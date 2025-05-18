@@ -2,18 +2,15 @@
 
 ## プロジェクト概要
 
-ScaryCatScreeningKitは、潜在的に「不安全な」猫の画像を検出しフィルタリングするための画像スクリーニング機能を提供する Swift パッケージです。機械学習モデルを使用して画像を分類し、設定可能な確率の閾値に基づいて安全性を判断します。現在は以下の2つのアプローチを利用できます。
+ScaryCatScreeningKitは、潜在的に「不安全な」猫の画像を検出しフィルタリングするための画像スクリーニング機能を提供する Swift パッケージです。機械学習モデルを使用して画像を分類し、設定可能な確率の閾値に基づいて安全性を判断します。現在はOne-vs-Rest (OvR) 分類アプローチを利用できます。
 
-1.  **マルチクラス分類**: 単一のモデルを使い、画像を複数のカテゴリに分類します。
-2.  **One-vs-Rest (OvR) 分類**: 複数のバイナリ分類器を使用し、それぞれが特定のカテゴリに特化しています。
+**One-vs-Rest (OvR) 分類**: 複数のバイナリ分類器を使用し、それぞれが特定のカテゴリに特化しています。
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/terrio32/scary-cat-screening-kit)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aktrh/scary-cat-screening-kit)
 
 ## 設計方針
 
-*   **SCSInterface**: スクリーナーが実装すべき `ScaryCatScreenerProtocol` を定義します。
-*   **[MultiClassScaryCatScreener](./Sources/MultiClassScaryCatScreener/MultiClassScaryCatScreener.md)**: 単一のマルチクラスモデルを使用した実装です。
-*   **[OvRScaryCatScreener](./Sources/OvRScaryCatScreener/OvRScaryCatScreener.md)**: 複数のOne-vs-Restモデルを使用した実装です。
+*   **ScaryCatScreeningKit**: 複数のOne-vs-Restモデルを使用した画像スクリーニング機能を提供します。CoreMLモデルを活用し、設定可能な閾値に基づいて画像を分類します。 ([詳細](./Sources/ScaryCatScreeningKit/OvRScaryCatScreener.md))
 
 ## ディレクトリ構成
 
@@ -21,18 +18,13 @@ ScaryCatScreeningKitは、潜在的に「不安全な」猫の画像を検出し
 .
 ├── SampleApp/
 ├── Sources/
-│   ├── MultiClassScaryCatScreener/
-│   │   ├── MultiClassScaryCatScreener.md
-│   │   ├── MultiClassScaryCatScreener.swift
-│   │   ├── MultiClassScreeningReport.swift
-│   │   └── Resources
-│   ├── OvRScaryCatScreener/
-│   │   ├── OvRScaryCatScreener.md
-│   │   ├── OvRScaryCatScreener.swift
-│   │   ├── OvRScreeningReport.swift
-│   │   └── Resources
-│   ├── ScaryCatScreeningKit/
-│   └── SCSInterface/
+│   └── ScaryCatScreeningKit/
+│       ├── OvRScaryCatScreener.md
+│       ├── OvRScaryCatScreener.swift
+│       ├── OvRScreeningReport.swift
+│       ├── ScaryCatScreenerError.swift
+│       ├── SCSReporterProtocol.swift
+│       └── Resources/
 ├── Package.swift
 ├── project.yml
 └── README.md
@@ -60,17 +52,11 @@ ScaryCatScreeningKitは、潜在的に「不安全な」猫の画像を検出し
 
 ### スクリーナー実装
 
-Cat Screening Kitは `ScaryCatScreenerProtocol` の2つの異なる実装を用意しています。
-
-| 特徴                     | MultiClassScaryCatScreener      | OvRScaryCatScreener                         |
-| ------------------------ | ---------------------------------- | ------------------------------------------- |
-| 分類アプローチ           | 単一のマルチクラスモデル                                    | 複数のバイナリモデル               |
-| モデル読み込み           | "ScaryCatScreeningML_MultiClass" という接頭辞を持つモデル  | .mlmodelc拡張子を持つ全てのモデル         |
-| 処理アプローチ           | シーケンシャル                                              | タスクグループによる並列処理                |
+ScaryCatScreeningKitは、複数のバイナリ分類器（One-vs-Rest）を使用して画像をスクリーニングする機能を提供します。各分類器は特定のカテゴリに特化しており、タスクグループによる並列処理を活用して効率的な評価を行います。モデルは ".mlmodelc" 拡張子を持つものが自動的にロードされます。
 
 ### エラーハンドリング
 
-フレームワークは `ScaryCatScreenerError` enumを通じて包括的なエラーハンドリングシステムを実装しています。このエラー型は `SCSInterface` モジュールで定義されており、 `NSError` に変換して throw されます。
+フレームワークは `ScaryCatScreenerError` enumを通じて包括的なエラーハンドリングシステムを実装しています。このエラー型は `ScaryCatScreeningKit` モジュールで定義されており、 `NSError` に変換して throw されます。
 
 | エラータイプ                       | 説明                                                         |
 | -------------------------------- | ------------------------------------------------------------ |

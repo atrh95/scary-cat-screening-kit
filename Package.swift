@@ -11,32 +11,14 @@ let package = Package(
     products: [
         .library(
             name: "ScaryCatScreeningKit",
-            targets: ["ScaryCatScreeningKit", "OvRScaryCatScreener", "SCSInterface"]
+            targets: ["ScaryCatScreeningKit"]
         ),
     ],
     targets: [
         .target(
-            name: "SCSInterface",
-            dependencies: [],
-            path: "Sources/SCSInterface"
-        ),
-        .target(
             name: "ScaryCatScreeningKit",
-            dependencies: ["MultiClassScaryCatScreener", "OvRScaryCatScreener", "SCSInterface"],
-            path: "Sources/ScaryCatScreeningKit"
-        ),
-        .target(
-            name: "MultiClassScaryCatScreener",
-            dependencies: ["SCSInterface"],
-            path: "Sources/MultiClassScaryCatScreener",
-            resources: [
-                .process("Resources"),
-            ]
-        ),
-        .target(
-            name: "OvRScaryCatScreener",
-            dependencies: ["SCSInterface"],
-            path: "Sources/OvRScaryCatScreener",
+            dependencies: [],
+            path: "Sources/ScaryCatScreeningKit",
             resources: [
                 .process("Resources"),
             ]
