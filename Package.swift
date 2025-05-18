@@ -18,9 +18,9 @@ let package = Package(
         .target(
             name: "ScaryCatScreeningKit",
             dependencies: [],
-            path: "Sources/ScaryCatScreeningKit",
+            path: "Sources",
             resources: [
-                .process("Resources"),
+                .process("OvRModels"),
             ]
         ),
     ],
