@@ -6,7 +6,7 @@ public enum ScaryCatScreenerError: Error {
     case modelNotFound
     case predictionFailed(originalError: Error? = nil)
 
-    public static let errorDomain = "ScaryCatScreeningKit.SCSInterface.Error"
+    public static let errorDomain = "ScaryCatScreeningKit.Error"
 
     public func asNSError() -> NSError {
         var code: Int
