@@ -145,7 +145,7 @@ public actor ScaryCatScreener {
                  }
             }
 
-            if enableLogging || !isSafeForCurrentImage {
+            if enableLogging {
                 let report = ScreeningReport(
                     flaggingDetections: currentImageFlaggingDetections,
                     imageIndex: index + 1,
