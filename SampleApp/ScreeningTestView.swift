@@ -1,10 +1,10 @@
-import SwiftUI
-import ScaryCatScreeningKit
 import Kingfisher
+import ScaryCatScreeningKit
+import SwiftUI
 
 struct ScreeningTestView: View {
     @StateObject private var viewModel = ScreeningViewModel()
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -122,7 +122,7 @@ struct ScreeningTestView: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .stroke(Color.red, lineWidth: 3)
                                             )
-                                        
+
                                         VStack(alignment: .leading, spacing: 4) {
                                             ForEach(result.features, id: \.featureName) { feature in
                                                 HStack {

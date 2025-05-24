@@ -1,6 +1,6 @@
+import CoreGraphics
 import Foundation
 import Vision
-import CoreGraphics
 
 /// 検出された怖い特徴（クラス名と信頼度のペア）
 public typealias DetectedScaryFeature = (featureName: String, confidence: Float)
@@ -13,7 +13,7 @@ public struct IndividualScreeningResult {
     public let cgImage: CGImage
     /// 検出された怖い特徴の配列
     public let scaryFeatures: [DetectedScaryFeature]
-    
+
     /// 安全と判断されたかどうか
     public var isSafe: Bool {
         scaryFeatures.isEmpty
@@ -24,12 +24,12 @@ public struct IndividualScreeningResult {
 public struct SCScreeningResults: Sendable {
     /// 入力画像と同じ順序での各画像のスクリーニング結果
     public let results: [IndividualScreeningResult]
-    
+
     /// 安全と判断された画像の配列
     public var safeImages: [CGImage] {
-        results.filter { $0.isSafe }.map { $0.cgImage }
+        results.filter(\.isSafe).map(\.cgImage)
     }
-    
+
     /// 検出された怖い特徴ごとの画像と信頼度のマップ
     public var scaryFeatures: [String: [(image: CGImage, confidence: Float)]] {
         Dictionary(
@@ -41,15 +41,15 @@ public struct SCScreeningResults: Sendable {
             by: { $0.0 }
         ).mapValues { $0.map { $1 } }
     }
-    
+
     public init(results: [IndividualScreeningResult]) {
         self.results = results
     }
-    
+
     /// スクリーニング結果の詳細なレポートを出力
     public func printDetailedReport() {
         print("\n=== スクリーニング結果レポート ===")
-        
+
         // 各画像の結果
         print("\n各画像のスクリーニング結果:")
         for result in results {
@@ -63,12 +63,12 @@ public struct SCScreeningResults: Sendable {
                 }
             }
         }
-        
+
         // サマリー
         print("\nサマリー:")
         print("安全な画像: \(safeImages.count)枚")
         print("検出された危険な特徴: \(scaryFeatures.count)種類")
-        
+
         print("\n==============================\n")
     }
 }

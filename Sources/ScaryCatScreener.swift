@@ -1,10 +1,9 @@
 import CoreGraphics
 import CoreML
-import Vision
 import Kingfisher
+import Vision
 
 public actor ScaryCatScreener {
-    
     private struct SCSModelContainer: @unchecked Sendable {
         let visionModel: VNCoreMLModel
         let modelFileName: String
@@ -40,12 +39,14 @@ public actor ScaryCatScreener {
         guard !loadedModels.isEmpty else {
             throw ScaryCatScreenerError.modelNotFound
         }
-        
+
         // 最終的なモデル配列を設定
-        self.ovrModels = loadedModels
+        ovrModels = loadedModels
 
         if self.enableLogging {
-            print("[ScaryCatScreener] [Info] \(self.ovrModels.count)個のOvRモデルをロード完了: \(self.ovrModels.map(\.modelFileName).joined(separator: ", "))")
+            print(
+                "[ScaryCatScreener] [Info] \(ovrModels.count)個のOvRモデルをロード完了: \(ovrModels.map(\.modelFileName).joined(separator: ", "))"
+            )
         }
     }
 
@@ -53,7 +54,7 @@ public actor ScaryCatScreener {
     private func findModelFiles(in resourceURL: URL) async throws -> [URL] {
         let fileManager = FileManager.default
         let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
-        
+
         guard let enumerator = fileManager.enumerator(
             at: resourceURL,
             includingPropertiesForKeys: resourceKeys,
@@ -66,27 +67,27 @@ public actor ScaryCatScreener {
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "mlmodelc" {
             modelFileURLs.append(fileURL)
         }
-        
+
         return modelFileURLs
     }
 
     /// モデルファイルからVisionモデルとリクエストを並列にロード
     private func loadModels(from modelFileURLs: [URL]) async throws -> [SCSModelContainer] {
         var collectedContainers: [SCSModelContainer] = []
-        
+
         try await withThrowingTaskGroup(of: SCSModelContainer.self) { group in
             for url in modelFileURLs {
                 group.addTask {
                     try await self.loadModel(from: url)
                 }
             }
-            
+
             // 完了したタスクの結果を収集
             for try await container in group {
                 collectedContainers.append(container)
             }
         }
-        
+
         return collectedContainers
     }
 
@@ -95,27 +96,27 @@ public actor ScaryCatScreener {
         // MLModelConfigurationの設定
         let config = MLModelConfiguration()
         #if targetEnvironment(simulator)
-        config.computeUnits = .cpuOnly
-        if enableLogging {
-            print("[ScaryCatScreener] [Debug] シミュレータ環境ではCPUのみを使用")
-        }
+            config.computeUnits = .cpuOnly
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] シミュレータ環境ではCPUのみを使用")
+            }
         #else
-        config.computeUnits = .all
-        if enableLogging {
-            print("[ScaryCatScreener] [Debug] 実機環境では全計算ユニットを使用")
-        }
+            config.computeUnits = .all
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] 実機環境では全計算ユニットを使用")
+            }
         #endif
 
         // モデルのロードと設定
         let mlModel = try MLModel(contentsOf: url, configuration: config)
         let visionModel = try VNCoreMLModel(for: mlModel)
-        
+
         // Visionリクエストの設定
         let request = VNCoreMLRequest(model: visionModel)
         #if targetEnvironment(simulator)
-        request.usesCPUOnly = true
+            request.usesCPUOnly = true
         #else
-        request.usesCPUOnly = false
+            request.usesCPUOnly = false
         #endif
         request.imageCropAndScaleOption = .scaleFit
 
@@ -127,6 +128,7 @@ public actor ScaryCatScreener {
     }
 
     // MARK: - Public Screening API
+
     public func screen(
         cgImages: [CGImage],
         probabilityThreshold: Float = 0.85,
@@ -149,20 +151,20 @@ public actor ScaryCatScreener {
                     )
                 }
             }
-            
+
             var collectedResults: [IndividualScreeningResult] = []
             for try await result in group {
                 collectedResults.append(result)
             }
             return collectedResults.sorted { $0.index < $1.index }
         }
-        
+
         return SCScreeningResults(results: results)
     }
-    
+
     private func screenSingleImage(
         _ image: CGImage,
-        at index: Int,
+        at _: Int,
         probabilityThreshold: Float,
         enableLogging: Bool
     ) async throws -> [DetectedScaryFeature] {
@@ -177,11 +179,16 @@ public actor ScaryCatScreener {
                         guard let observations = container.request.results as? [VNClassificationObservation] else {
                             return (container.modelFileName, nil)
                         }
-                        let mappedObservations = observations.map { (featureName: $0.identifier, confidence: $0.confidence) }
+                        let mappedObservations = observations.map { (
+                            featureName: $0.identifier,
+                            confidence: $0.confidence
+                        ) }
                         return (container.modelFileName, mappedObservations)
                     } catch {
                         if enableLogging {
-                            print("[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)")
+                            print(
+                                "[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)"
+                            )
                         }
                         throw ScaryCatScreenerError.predictionFailed(originalError: error)
                     }
@@ -192,12 +199,14 @@ public actor ScaryCatScreener {
                 guard let mappedObservations = result.observations else { continue }
 
                 // 各モデルの検出結果から危険な特徴を収集
-                for observation in mappedObservations where observation.confidence >= probabilityThreshold && observation.featureName != "Rest" {
+                for observation in mappedObservations
+                    where observation.confidence >= probabilityThreshold && observation.featureName != "Rest"
+                {
                     scaryFeatures.append((featureName: observation.featureName, confidence: observation.confidence))
                 }
             }
         }
-        
+
         return scaryFeatures
     }
 }
