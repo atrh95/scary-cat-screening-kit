@@ -6,6 +6,12 @@ ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを�
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aktrh/scary-cat-screening-kit)
 
+## 必要条件
+
+- iOS 17.0以上
+- Swift 6.0以上
+- Xcode 15.0以上
+
 ## 設計
 
 *   **`ScaryCatScreener.swift`**: 画像スクリーニングの主要なインターフェースとOne-vs-Rest分類ロジックを提供します。モデルの読み込み、画像処理を行います。
@@ -27,36 +33,9 @@ ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを�
 └── README.md
 ```
 
-## 機能詳細
+`SampleApp`の動作確認は、シミュレータではなくiPhone 16などの実機で行うことを推奨します。シミュレータ環境ではNeural Engineなどの計算ユニットが使用できないため、スクリーニングの精度と速度が低下します。
 
-### 画像スクリーニングワークフロー
-
-1.  `ScaryCatScreener` を初期化します。この際、内部でOne-vs-Rest (OvR) 分類用のMLモデルがロードされます。
-2.  設定可能な確率の閾値と共に、`screen()` メソッド経由で CGImage の配列を送信します。
-3.  `ScaryCatScreener` は、ロードされたモデル群を使用して各 CGImage を処理します。
-4.  内部処理の結果 (`SCScreeningResults`) には、全ての画像のスクリーニング結果が含まれます。各結果は `IndividualScreeningResult` として以下の情報を持ちます：
-    - `index`: 入力画像配列での位置（0から始まる）
-    - `cgImage`: 元の画像
-    - `scaryFeatures`: 検出された怖い特徴の配列（各要素は `featureName` と `confidence` のペア）
-    - `isSafe`: 安全と判断されたかどうか（`scaryFeatures` が空の場合に `true`）
-5.  `SCScreeningResults` は以下の便利なプロパティを提供します：
-    - `results`: 入力画像と同じ順序での各画像のスクリーニング結果の配列
-    - `safeImages`: 安全と判断された画像の配列（`isSafe` が `true` の画像のみ）
-    - `scaryFeatures`: 検出された怖い特徴ごとの画像と信頼度のマップ（キーは特徴名、値は `(image, confidence)` の配列）
-6.  オプションのログ機能（`enableLogging`）により、`printDetailedReport()`を通じて詳細なスクリーニングレポートの取得が可能です。レポートには以下が含まれます：
-    - 各画像のスクリーニング結果（安全/危険の状態と検出された特徴）
-    - サマリー（安全な画像の数と検出された危険な特徴の種類数）
-
-### スクリーナー実装 (ScaryCatScreener の内部実装)
-
-`ScaryCatScreener` は、One-vs-Rest (OvR) アプローチを直接実装しています。これは、複数の二値分類モデルを使用して画像を評価する方式です。
-
-*   **分類アプローチ**: 複数のバイナリモデル (One-vs-Rest)。各モデルが特定の「安全でない」特徴を検出します。画像は、これらのモデルのいずれかが、指定された信頼度の閾値を超えて不適切なコンテンツを含むと判定した場合に「安全でない」と見なされます。
-*   **モデル読み込み**: `ScaryCatScreener` の初期化時に、`Bundle.module` の `OvRModels` リソースディレクトリ内にある `.mlmodelc` 拡張子を持つ全てのモデルをロードします。
-*   **処理アプローチ**: VisionフレームワークとCoreMLモデルを使用し、各モデルの処理はタスクグループによる並列処理が行われます。
-*   **環境最適化**: シミュレータ環境ではCPUのみを使用し、実機環境では全計算ユニットを使用するように最適化されています。
-
-### 利用方法 (ScaryCatScreener のセットアップと使用)
+### 利用方法
 
 #### 1. インポート
 
@@ -68,34 +47,26 @@ import ScaryCatScreeningKit
 
 #### 2. 初期化
 
-`ScaryCatScreener` の初期化は、モデルのロードに失敗する可能性があるため、エラーをスローする可能性があります (`throws`)。初期化時には `do-catch` ブロックを使用してエラーハンドリングを行うことを推奨します。
+`ScaryCatScreener` の初期化は、モデルのロードに失敗する可能性があるため、エラーをスローする可能性があるため、 `do-catch` ブロックを使用してエラーハンドリングを行うことを推奨します。
 
 ```swift
 let screener: ScaryCatScreener
 
 do {
     screener = try await ScaryCatScreener(enableLogging: true) // ログ出力を有効にする例
-} catch let error as NSError { // ScaryCatScreenerError.asNSError() で NSError がスローされる
+} catch let error as NSError { // ScaryCatScreenerError.asNSError()
     // 初期化失敗時の処理
     print("ScaryCatScreener の初期化に失敗しました: \(error.localizedDescription)")
     print("エラーコード: \(error.code), ドメイン: \(error.domain)")
     if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
         print("原因: \(underlying.localizedDescription)")
     }
-    // ユーザーへのエラー通知や代替処理を実装します
 }
 ```
-
-初期化時にスローされる可能性のある主なエラーは `ScaryCatScreenerError` を `asNSError()` で変換したものです（エラー定義は `ScaryCatScreenerError.swift` を参照）。考えられる主なエラーは以下の通りです:
--   `ScaryCatScreenerError.resourceBundleNotFound`: リソースバンドルまたは `OvRModels` ディレクトリが見つからない場合。
--   `ScaryCatScreenerError.modelNotFound`: `OvRModels` ディレクトリ内にコンパイル済みモデルファイル (`.mlmodelc`) が一つも見つからない場合。
--   `ScaryCatScreenerError.modelLoadingFailed`: いずれかのモデルファイルの読み込みに失敗した場合。エラーの `userInfo[NSUnderlyingErrorKey]` に元のエラーが含まれることがあります。
 
 #### 3. 画像のスクリーニング
 
 スクリーニング処理 (`screen` メソッド) は非同期 (`async`) で行われ、エラーをスローする可能性があります (`throws`)。そのため、`async` コンテキスト内では `try await` を使用して呼び出す必要があります。
-
-`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `CGImage` を一度にスクリーニングできます。このメソッドは、`SCScreeningResults` オブジェクトを返し、これには全ての画像のスクリーニング結果が含まれます。
 
 **パラメータ:**
 
@@ -134,6 +105,50 @@ Task {
         if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
             print("原因: \(underlying.localizedDescription)")
         }
+    }
+}
+```
+
+`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `CGImage` を一度にスクリーニングできます。このメソッドは、`SCScreeningResults` オブジェクトを返し、これには全ての画像のスクリーニング結果が含まれます。
+
+```swift
+public struct SCScreeningResults: Sendable {
+    /// 入力画像と同じ順序での各画像のスクリーニング結果
+    public let results: [IndividualScreeningResult]
+    
+    /// 安全と判断された画像の配列
+    public var safeImages: [CGImage] {
+        results.filter { $0.isSafe }.map { $0.cgImage }
+    }
+    
+    /// 検出された怖い特徴ごとの画像と信頼度のマップ
+    public var scaryFeatures: [String: [(image: CGImage, confidence: Float)]] {
+        Dictionary(
+            grouping: results.filter { !$0.isSafe }.flatMap { result in
+                result.scaryFeatures.map { feature in
+                    (feature.featureName, (image: result.cgImage, confidence: feature.confidence))
+                }
+            },
+            by: { $0.0 }
+        ).mapValues { $0.map { $1 } }
+    }
+}
+
+/// 検出された怖い特徴（クラス名と信頼度のペア）
+public typealias DetectedScaryFeature = (featureName: String, confidence: Float)
+
+/// 個別の画像のスクリーニング結果
+public struct IndividualScreeningResult {
+    /// 画像のインデックス
+    public let index: Int
+    /// スクリーニング対象の画像
+    public let cgImage: CGImage
+    /// 検出された怖い特徴の配列
+    public let scaryFeatures: [DetectedScaryFeature]
+    
+    /// 安全と判断されたかどうか
+    public var isSafe: Bool {
+        scaryFeatures.isEmpty
     }
 }
 ```
