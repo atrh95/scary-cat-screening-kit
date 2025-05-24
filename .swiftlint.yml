@@ -13,29 +13,31 @@ excluded:
   - .git
   - .build
   - DerivedData
-  - playground.xcworkspace # Playgroundのワークスペースを除外
+  - playground.xcworkspace
   - .github
   - Carthage
   - build
   - xcbuild
   - "**/*.generated.swift"
-  - .cursor # Cursorのディレクトリを除外
+  - .cursor
 
 #-------------------------------------------------------------------
 # Rule Configuration
 #-------------------------------------------------------------------
 disabled_rules:
-  - trailing_whitespace # 行末の空白を許可
-  - line_length # 行の長さは別途カスタマイズ
-  - trailing_newline # 末尾の改行を無視
-  - trailing_comma # SwiftFormatで制御するため無効化
-  - function_body_length # 関数本体の長さ制限を無効化
+  - trailing_whitespace
+  - line_length
+  - trailing_newline
+  - trailing_comma
+  - function_body_length
+  - opening_brace
+  - closing_brace
+  - vertical_whitespace
 
 opt_in_rules:
   - empty_count # count == 0 の代わりに isEmpty を使用
   - force_unwrapping # 強制アンラップを禁止
   - sorted_imports # importを整列
-  - vertical_whitespace # 垂直方向の空白行を整理
 
 analyzer_rules:
   - unused_declaration # 未使用宣言の検出
@@ -84,7 +86,7 @@ identifier_name:
     - from
     - with
 
-# switch文のcaseのアライメント - SwiftFormatと一致させる
+# switch文のcaseのアライメント
 switch_case_alignment:
   indented_cases: true
 

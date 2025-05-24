@@ -1,35 +1,74 @@
+import CoreGraphics
+import Foundation
 import Vision
 
-/// Classificationタプルの型エイリアス
-public typealias ClassResultTuple = (identifier: String, confidence: Float)
+/// 検出された怖い特徴（クラス名と信頼度のペア）
+public typealias DetectedScaryFeature = (featureName: String, confidence: Float)
 
-/// 画像を安全でないと判定する原因となった検出情報
-public struct TriggeringDetection: Sendable {
-    /// モデル識別子
-    public let modelIdentifier: String
-    /// 閾値を超え、かつ 'Rest' ではない、画像をフラグする原因となった単一の分類結果
-    public let detection: ClassResultTuple
+/// 個別の画像のスクリーニング結果
+public struct IndividualScreeningResult {
+    /// 画像のインデックス
+    public let index: Int
+    /// スクリーニング対象の画像
+    public let cgImage: CGImage
+    /// 検出された怖い特徴の配列
+    public let scaryFeatures: [DetectedScaryFeature]
 
-    public init(modelIdentifier: String, detection: ClassResultTuple) {
-        self.modelIdentifier = modelIdentifier
-        self.detection = detection
+    /// 安全と判断されたかどうか
+    public var isSafe: Bool {
+        scaryFeatures.isEmpty
     }
 }
 
-/// 単一画像に対するスクリーニング操作の出力。
-public struct ScreeningOutput: Sendable {
-    /// 実行された全てのモデルからの全ての観測結果。
-    /// Key: モデル識別子, Value: そのモデルの観測結果リスト。
-    public let allModelObservations: [String: [ClassResultTuple]]
+/// スクリーニング結果
+public struct SCScreeningResults: Sendable {
+    /// 入力画像と同じ順序での各画像のスクリーニング結果
+    public let results: [IndividualScreeningResult]
 
-    /// 画像が安全でないとフラグ付けされる原因となった特定の検出結果 (存在する場合)。
-    public let flaggingDetection: TriggeringDetection?
+    /// 安全と判断された画像の配列
+    public var safeImages: [CGImage] {
+        results.filter(\.isSafe).map(\.cgImage)
+    }
 
-    public init(
-        allModelObservations: [String: [ClassResultTuple]],
-        flaggingDetection: TriggeringDetection? = nil
-    ) {
-        self.allModelObservations = allModelObservations
-        self.flaggingDetection = flaggingDetection
+    /// 検出された怖い特徴ごとの画像と信頼度のマップ
+    public var scaryFeatures: [String: [(image: CGImage, confidence: Float)]] {
+        Dictionary(
+            grouping: results.filter { !$0.isSafe }.flatMap { result in
+                result.scaryFeatures.map { feature in
+                    (feature.featureName, (image: result.cgImage, confidence: feature.confidence))
+                }
+            },
+            by: { $0.0 }
+        ).mapValues { $0.map { $1 } }
+    }
+
+    public init(results: [IndividualScreeningResult]) {
+        self.results = results
+    }
+
+    /// スクリーニング結果の詳細なレポートを出力
+    public func printDetailedReport() {
+        print("\n=== スクリーニング結果レポート ===")
+
+        // 各画像の結果
+        print("\n各画像のスクリーニング結果:")
+        for result in results {
+            print("\n画像 \(result.index + 1):")
+            if result.isSafe {
+                print("  状態: 安全")
+            } else {
+                print("  状態: 危険")
+                for feature in result.scaryFeatures {
+                    print("  検出: \(feature.featureName) (信頼度: \(String(format: "%.2f", feature.confidence)))")
+                }
+            }
+        }
+
+        // サマリー
+        print("\nサマリー:")
+        print("安全な画像: \(safeImages.count)枚")
+        print("検出された危険な特徴: \(scaryFeatures.count)種類")
+
+        print("\n==============================\n")
     }
 }

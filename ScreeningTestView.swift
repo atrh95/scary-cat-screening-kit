@@ -1,5 +1,3 @@
-import Kingfisher
-import ScaryCatScreeningKit
 import SwiftUI
 
 struct ScreeningTestView: View {
@@ -36,14 +34,8 @@ struct ScreeningTestView: View {
                             .font(.headline)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
-                                ForEach(viewModel.fetchedImages, id: \.url) { item in
-                                    KFImage(item.url)
-                                        .placeholder {
-                                            Rectangle()
-                                                .fill(Color(uiColor: .secondarySystemBackground))
-                                                .frame(height: 100)
-                                                .cornerRadius(8)
-                                        }
+                                ForEach(viewModel.fetchedImages, id: \.self) { img in
+                                    Image(uiImage: img)
                                         .resizable()
                                         .scaledToFit()
                                         .frame(height: 100)
@@ -62,6 +54,11 @@ struct ScreeningTestView: View {
                         .padding()
                     }
 
+                    Text(viewModel.screeningSummary)
+                        .font(.body)
+                        .padding(.top)
+                        .multilineTextAlignment(.center)
+
                     if let errorMessage = viewModel.errorMessage {
                         Text("エラー: \(errorMessage)")
                             .foregroundColor(.red)
@@ -76,14 +73,8 @@ struct ScreeningTestView: View {
                             .padding(.top)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
-                                ForEach(viewModel.safeImagesForDisplay, id: \.url) { item in
-                                    KFImage(item.url)
-                                        .placeholder {
-                                            Rectangle()
-                                                .fill(Color(uiColor: .secondarySystemBackground))
-                                                .frame(height: 150)
-                                                .cornerRadius(8)
-                                        }
+                                ForEach(viewModel.safeImagesForDisplay, id: \.self) { img in
+                                    Image(uiImage: img)
                                         .resizable()
                                         .scaledToFit()
                                         .frame(height: 150)
@@ -99,58 +90,32 @@ struct ScreeningTestView: View {
                         }
                     }
 
-                    if !viewModel.unsafeImagesForDisplay.isEmpty {
-                        Text("危険な画像 (".uppercased() + "\(viewModel.unsafeImagesForDisplay.count)枚)")
+                    if !viewModel.scaryImagesForDisplay.isEmpty {
+                        Text("検出された危険な特徴 (".uppercased() + "\(viewModel.scaryImagesForDisplay.count)枚)")
                             .font(.headline)
                             .padding(.top)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
-                                ForEach(viewModel.unsafeImagesForDisplay, id: \.url) { result in
-                                    VStack {
-                                        KFImage(result.url)
-                                            .placeholder {
-                                                Rectangle()
-                                                    .fill(Color(uiColor: .secondarySystemBackground))
-                                                    .frame(height: 150)
-                                                    .cornerRadius(8)
-                                            }
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(height: 150)
-                                            .cornerRadius(8)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(Color.red, lineWidth: 3)
-                                            )
-
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            ForEach(result.features, id: \.featureName) { feature in
-                                                HStack {
-                                                    Text(feature.featureName)
-                                                        .font(.caption)
-                                                        .foregroundColor(.red)
-                                                    Text("(\(String(format: "%.1f", feature.confidence * 100))%)")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color.red.opacity(0.1))
-                                        .cornerRadius(6)
-                                    }
-                                    .padding(.trailing, 4)
+                                ForEach(viewModel.scaryImagesForDisplay, id: \.self) { img in
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 150)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.red, lineWidth: 3)
+                                        )
+                                        .padding(.trailing, 4)
                                 }
                             }
                             .padding(.horizontal)
                         }
                     }
-                    Spacer()
                 }
                 .padding(.bottom)
             }
-            .navigationTitle("Scary Cat Screener")
+            .navigationTitle("Image Screener")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if viewModel.isLoading {
@@ -159,5 +124,9 @@ struct ScreeningTestView: View {
                 }
             }
         }
+    }
+
+    static var previews: some View {
+        ScreeningTestView()
     }
 }
