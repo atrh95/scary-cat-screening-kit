@@ -1,14 +1,18 @@
 # mint run xcodegen generate
 
-name: SampleApp
+name: ScaryCatScreeningKit
 options:
-  bundleIdPrefix: com.akitorahayashi.ScaryCatScreeningKit
+  bundleIdPrefix: com.akitorahayashi
   deploymentTarget:
-    iOS: "13.0"
+    iOS: 17.0
+  xcodeVersion: 15.0
+  generateEmptyDirectories: true
+  createIntermediateGroups: true
 
 packages:
-  ScaryCatScreeningKit:
-    path: .
+  Kingfisher:
+    url: https://github.com/onevcat/Kingfisher.git
+    from: 7.10.2
 
 schemes:
   SampleApp:
@@ -25,21 +29,27 @@ schemes:
       config: Release
 
 targets:
+  ScaryCatScreeningKit:
+    type: framework
+    platform: iOS
+    sources:
+      - Sources
+    dependencies:
+      - package: Kingfisher
+    settings:
+      base:
+        INFOPLIST_FILE: Sources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.akitora.ScaryCatScreeningKit
+
   SampleApp:
     type: application
     platform: iOS
-    deploymentTarget: "15.0"
     sources:
-      - path: SampleApp
+      - SampleApp
     dependencies:
-      - package: ScaryCatScreeningKit
-        product: ScaryCatScreeningKit
-    info:
-      path: SampleApp/Info.plist
-      properties:
-        UILaunchScreen: {}
-        UISupportedInterfaceOrientations:
-          - UIInterfaceOrientationPortrait
+      - target: ScaryCatScreeningKit
+      - package: Kingfisher
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: $(bundleIdPrefix).SampleApp
+        INFOPLIST_FILE: SampleApp/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.akitorahayashi.ScaryCatScreeningKit.SampleApp
