@@ -2,6 +2,7 @@ import XCTest
 import CoreGraphics
 @testable import ScaryCatScreeningKit
 
+/// 実機ではないシミュレータでのテストは十分な精度を得られないので精度の検証は省く
 final class ScaryCatScreenerTests: XCTestCase {
     var screener: ScaryCatScreener!
     
