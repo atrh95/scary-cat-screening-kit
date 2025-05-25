@@ -130,63 +130,15 @@ public actor ScaryCatScreener {
 
     // MARK: - Public Screening API
 
-    public func screen(
-        cgImages: [CGImage],
-        probabilityThreshold: Float = 0.85,
-        enableLogging: Bool = false
-    ) async throws -> SCScreeningResults {
-        if enableLogging {
-            print("[ScaryCatScreener] [Info] スクリーニング開始: \(cgImages.count)枚の画像")
-        }
-        
-        // 各画像のスクリーニングを直列で実行
-        var results: [IndividualScreeningResult] = []
-        for (index, image) in cgImages.enumerated() {
-            let scaryFeatures = try await screenSingleImage(
-                image,
-                at: index,
-                probabilityThreshold: probabilityThreshold,
-                enableLogging: enableLogging
-            )
-            results.append(IndividualScreeningResult(
-                index: index,
-                cgImage: image,
-                scaryFeatures: scaryFeatures
-            ))
-        }
-
-        let screeningResults = SCScreeningResults(results: results)
-        
-        if enableLogging {
-            let dangerousCount = results.filter { !$0.scaryFeatures.isEmpty }.count
-            let safeCount = results.count - dangerousCount
-            print("[ScaryCatScreener] [Info] スクリーニング完了: 安全 \(safeCount)枚 / 危険 \(dangerousCount)枚")
-            
-            // 危険な画像がある場合のみ詳細を表示
-            if dangerousCount > 0 {
-                print("\n=== 危険な画像の詳細 ===")
-                for result in results where !result.scaryFeatures.isEmpty {
-                    print("画像 \(result.index):")
-                    for feature in result.scaryFeatures {
-                        print("  - \(feature.featureName) (信頼度: \(String(format: "%.2f", feature.confidence)))")
-                    }
-                }
-                print("======================\n")
-            }
-        }
-
-        return screeningResults
-    }
-
     private func screenSingleImage(
         _ image: CGImage,
         at index: Int,
         probabilityThreshold: Float,
         enableLogging: Bool
-    ) async throws -> [DetectedScaryFeature] {
-        var scaryFeatures: [DetectedScaryFeature] = []
+    ) async throws -> [DetectedFeature] {
+        var allFeatures: [DetectedFeature] = []
 
-        try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedScaryFeature]?).self) { group in
+        try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedFeature]?).self) { group in
             for container in self.ovrModels {
                 group.addTask {
                     do {
@@ -217,15 +169,44 @@ public actor ScaryCatScreener {
             for try await result in group {
                 guard let mappedObservations = result.observations else { continue }
 
-                // 各モデルの検出結果から危険な特徴を収集
-                for observation in mappedObservations
-                    where observation.confidence >= probabilityThreshold && observation.featureName != "Rest"
-                {
-                    scaryFeatures.append((featureName: observation.featureName, confidence: observation.confidence))
+                // すべての検出結果を収集
+                for observation in mappedObservations where observation.featureName != "Rest" {
+                    allFeatures.append((featureName: observation.featureName, confidence: observation.confidence))
                 }
             }
         }
 
-        return scaryFeatures
+        return allFeatures
+    }
+
+    public func screen(
+        cgImages: [CGImage],
+        probabilityThreshold: Float = 0.85,
+        enableLogging: Bool = false
+    ) async throws -> SCScreeningResults {
+        // 各画像のスクリーニングを直列で実行
+        var results: [IndividualScreeningResult] = []
+        for (index, image) in cgImages.enumerated() {
+            let detectedFeatures = try await screenSingleImage(
+                image,
+                at: index,
+                probabilityThreshold: probabilityThreshold,
+                enableLogging: enableLogging
+            )
+            results.append(IndividualScreeningResult(
+                index: index,
+                cgImage: image,
+                detectedFeatures: detectedFeatures,
+                probabilityThreshold: probabilityThreshold
+            ))
+        }
+
+        let screeningResults = SCScreeningResults(results: results)
+        
+        if enableLogging {
+            print(screeningResults.generateDetailedReport())
+        }
+
+        return screeningResults
     }
 }

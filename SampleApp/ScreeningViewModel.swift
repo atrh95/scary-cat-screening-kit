@@ -13,11 +13,14 @@ struct CatImageResponse: Decodable, Identifiable {
 struct UnsafeImageResult {
     let image: UIImage
     let url: URL
-    let features: [DetectedScaryFeature]
+    let features: [DetectedFeature]
 }
 
 @MainActor
 class ScreeningViewModel: ObservableObject {
+    private let enableLogging = true
+    private let probabilityThreshold: Float = 0.85
+    
     @Published private(set) var fetchedImages: [(image: UIImage, url: URL)] = []
     @Published private(set) var safeImagesForDisplay: [(image: UIImage, url: URL)] = []
     @Published private(set) var unsafeImagesForDisplay: [UnsafeImageResult] = []
@@ -44,7 +47,7 @@ class ScreeningViewModel: ObservableObject {
 
         Task {
             do {
-                self.screener = try await ScaryCatScreener(enableLogging: true)
+                self.screener = try await ScaryCatScreener(enableLogging: enableLogging)
                 self.isScreenerReady = true
             } catch {
                 self.errorMessage = "スクリーナーの初期化に失敗しました: \(error.localizedDescription)"
@@ -80,9 +83,6 @@ class ScreeningViewModel: ObservableObject {
                         userInfo: [NSLocalizedDescriptionKey: "Screener not initialized"]
                     )
                 }
-
-                let probabilityThreshold: Float = 0.85
-                let enableLogging = true
 
                 // 画像を直列でダウンロード
                 var cgImages: [CGImage] = []
@@ -130,7 +130,7 @@ class ScreeningViewModel: ObservableObject {
                 for (index, result) in results.results.enumerated() {
                     let image = fetchedImages[index].image
                     let url = fetchedImages[index].url
-                    if result.scaryFeatures.isEmpty {
+                    if result.isSafe {
                         safeImagesForDisplay.append((image: image, url: url))
                     } else {
                         unsafeImagesForDisplay.append(UnsafeImageResult(
@@ -141,7 +141,7 @@ class ScreeningViewModel: ObservableObject {
                     }
                 }
 
-                screeningSummary = "安全な画像: \(safeImagesForDisplay.count)枚\n危険な画像: \(unsafeImagesForDisplay.count)枚"
+                screeningSummary = results.generateDetailedReport()
 
             } catch {
                 self.errorMessage = "エラーが発生しました: \(error.localizedDescription)"
