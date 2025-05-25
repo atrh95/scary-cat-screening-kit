@@ -46,29 +46,30 @@ public struct SCScreeningResults: Sendable {
         self.results = results
     }
 
-    /// スクリーニング結果の詳細なレポートを出力
-    public func printDetailedReport() {
-        print("\n=== スクリーニング結果レポート ===")
+    /// スクリーニング結果の詳細なレポートを生成
+    public func generateDetailedReport() -> String {
+        var report = "\n=== スクリーニング結果レポート ===\n"
 
         // 各画像の結果
-        print("\n各画像のスクリーニング結果:")
+        report += "\n各画像のスクリーニング結果:\n"
         for result in results {
-            print("\n画像 \(result.index + 1):")
+            report += "\n画像 \(result.index + 1):\n"
             if result.isSafe {
-                print("  状態: 安全")
+                report += "  状態: 安全\n"
             } else {
-                print("  状態: 危険")
+                report += "  状態: 危険\n"
                 for feature in result.scaryFeatures {
-                    print("  検出: \(feature.featureName) (信頼度: \(String(format: "%.2f", feature.confidence)))")
+                    report += "  検出: \(feature.featureName) (信頼度: \(String(format: "%.2f", feature.confidence)))\n"
                 }
             }
         }
 
         // サマリー
-        print("\nサマリー:")
-        print("安全な画像: \(safeImages.count)枚")
-        print("検出された危険な特徴: \(scaryFeatures.count)種類")
+        report += "\nサマリー:\n"
+        report += "安全な画像: \(safeImages.count)枚\n"
+        report += "検出された危険な特徴: \(scaryFeatures.count)種類\n"
 
-        print("\n==============================\n")
+        report += "\n==============================\n"
+        return report
     }
 }

@@ -85,6 +85,7 @@ class ScreeningViewModel: ObservableObject {
                 let enableLogging = true
 
                 // 画像を直列でダウンロード
+                var cgImages: [CGImage] = []
                 for response in responses {
                     guard let url = URL(string: response.url) else { continue }
 
@@ -111,24 +112,32 @@ class ScreeningViewModel: ObservableObject {
                         guard let cgImage = image.cgImage else { continue }
 
                         fetchedImages.append((image: image, url: url))
-                        let singleResult = try await screener.screen(
-                            cgImages: [cgImage],
-                            probabilityThreshold: probabilityThreshold,
-                            enableLogging: enableLogging
-                        )
-                        let result = singleResult.results[0]
-                        if result.scaryFeatures.isEmpty {
-                            safeImagesForDisplay.append((image: image, url: url))
-                        } else {
-                            unsafeImagesForDisplay.append(UnsafeImageResult(
-                                image: image,
-                                url: url,
-                                features: result.scaryFeatures
-                            ))
-                        }
+                        cgImages.append(cgImage)
                     } catch {
                         print("画像のダウンロードに失敗: \(error.localizedDescription)")
                         continue
+                    }
+                }
+
+                // すべての画像を一度にスクリーニング
+                let results = try await screener.screen(
+                    cgImages: cgImages,
+                    probabilityThreshold: probabilityThreshold,
+                    enableLogging: enableLogging
+                )
+
+                // 結果を分類
+                for (index, result) in results.results.enumerated() {
+                    let image = fetchedImages[index].image
+                    let url = fetchedImages[index].url
+                    if result.scaryFeatures.isEmpty {
+                        safeImagesForDisplay.append((image: image, url: url))
+                    } else {
+                        unsafeImagesForDisplay.append(UnsafeImageResult(
+                            image: image,
+                            url: url,
+                            features: result.scaryFeatures
+                        ))
                     }
                 }
 
