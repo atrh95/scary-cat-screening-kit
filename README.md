@@ -14,7 +14,7 @@ ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを�
 
 ## 設計
 
-*   **`ScaryCatScreener.swift`**: 画像スクリーニングの主要なインターフェースとOne-vs-Rest分類ロジックを提供します。モデルの読み込み、画像処理を行います。
+*   **`ScaryCatScreener.swift`**: MLModelを読み込み、One-vs-Rest分類ロジックを用いた画像分類を行います。
 *   **`ScreeningDataTypes.swift`**: スクリーニングに関連する主要なデータ構造を定義します。
 *   **`ScaryCatScreenerError.swift`**: 発生しうるエラーを定義します。
 
@@ -50,12 +50,11 @@ import ScaryCatScreeningKit
 `ScaryCatScreener` の初期化は、モデルのロードに失敗する可能性があるため、エラーをスローする可能性があるため、 `do-catch` ブロックを使用してエラーハンドリングを行うことを推奨します。
 
 ```swift
-let screener: ScaryCatScreener
+var screener: ScaryCatScreener
 
 do {
-    screener = try await ScaryCatScreener(enableLogging: true) // ログ出力を有効にする例
+    screener = try await ScaryCatScreener(enableLogging: true) // 初期化時のログ出力を有効にする例
 } catch let error as NSError { // ScaryCatScreenerError.asNSError()
-    // 初期化失敗時の処理
     print("ScaryCatScreener の初期化に失敗しました: \(error.localizedDescription)")
     print("エラーコード: \(error.code), ドメイン: \(error.domain)")
     if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
@@ -66,7 +65,7 @@ do {
 
 #### 3. 画像のスクリーニング
 
-スクリーニング処理 (`screen` メソッド) は非同期 (`async`) で行われ、エラーをスローする可能性があります (`throws`)。そのため、`async` コンテキスト内では `try await` を使用して呼び出す必要があります。
+`screen` メソッド は非同期で行われ、エラーをスローする可能性があります。そのため、`async` コンテキスト内では `try await` を使用して呼び出す必要があります。
 
 **パラメータ:**
 
@@ -94,15 +93,15 @@ Task {
         let screeningResults = SCSOverallScreeningResults(results: results)
         
         // 安全な画像のみを取得
-        let safeImages = screeningResults.safeResults.map(\.cgImage)
+        let safeImages: [CGImage] = screeningResults.safeResults.map(\.cgImage)
         
         // 危険な画像のみを取得
-        let unsafeImages = screeningResults.unsafeResults.map(\.cgImage)
+        let unsafeImages: [CGImage] = screeningResults.unsafeResults.map(\.cgImage)
         
         // レポートを出力
         print(screeningResults.generateDetailedReport())
         
-    } catch let error as NSError { // screenメソッドもScaryCatScreenerError.asNSError()でNSErrorを出すことがある
+    } catch let error as NSError {
         print("スクリーニング処理でエラーが発生しました: \(error.localizedDescription)")
         print("エラーコード: \(error.code), ドメイン: \(error.domain)")
         if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
@@ -147,7 +146,7 @@ public struct SCSOverallScreeningResults {
 
 ### エラーハンドリング
 
-フレームワークは `ScaryCatScreenerError` enumを通じて包括的なエラーハンドリングシステムを実装しています。このエラー型は `ScaryCatScreenerError.swift` で定義されており、 `NSError` に変換して throw されます。初期化時およびスクリーニング処理中に発生する可能性のある具体的なエラーについては、「利用方法」セクションの例も参照してください。
+フレームワークは `ScaryCatScreenerError` enumを通じてエラーハンドリングシステムを実装しています。このエラー型は `ScaryCatScreenerError.swift` で定義されており、 `NSError` に変換して throw されます。
 
 | エラータイプ                       | 説明                                                         |
 | -------------------------------- | ------------------------------------------------------------ |
