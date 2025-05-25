@@ -10,20 +10,14 @@ struct CatImageResponse: Decodable, Identifiable {
     let height: Int?
 }
 
-struct UnsafeImageResult {
-    let image: UIImage
-    let url: URL
-    let features: [DetectedFeature]
-}
-
 @MainActor
 class ScreeningViewModel: ObservableObject {
     private let enableLogging = true
-    private let probabilityThreshold: Float = 0.85
-    
-    @Published private(set) var fetchedImages: [(image: UIImage, url: URL)] = []
-    @Published private(set) var safeImagesForDisplay: [(image: UIImage, url: URL)] = []
-    @Published private(set) var unsafeImagesForDisplay: [UnsafeImageResult] = []
+    public let probabilityThreshold: Float = 0.85
+
+    @Published private(set) var fetchedImages: [(url: URL, image: UIImage)] = []
+    @Published private(set) var safeResults: [SCSIndividualScreeningResult] = []
+    @Published private(set) var unsafeResults: [SCSIndividualScreeningResult] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isScreenerReady = false
     @Published private(set) var errorMessage: String?
@@ -60,8 +54,8 @@ class ScreeningViewModel: ObservableObject {
             isLoading = true
             errorMessage = nil
             fetchedImages = []
-            safeImagesForDisplay = []
-            unsafeImagesForDisplay = []
+            safeResults = []
+            unsafeResults = []
             screeningSummary = ""
 
             do {
@@ -111,7 +105,7 @@ class ScreeningViewModel: ObservableObject {
 
                         guard let cgImage = image.cgImage else { continue }
 
-                        fetchedImages.append((image: image, url: url))
+                        fetchedImages.append((url: url, image: image))
                         cgImages.append(cgImage)
                     } catch {
                         print("画像のダウンロードに失敗: \(error.localizedDescription)")
@@ -119,29 +113,17 @@ class ScreeningViewModel: ObservableObject {
                     }
                 }
 
-                // すべての画像を一度にスクリーニング
+                // すべての画像をクリーニング
                 let results = try await screener.screen(
                     cgImages: cgImages,
                     probabilityThreshold: probabilityThreshold,
                     enableLogging: enableLogging
                 )
 
-                // 結果を分類
-                for (index, result) in results.results.enumerated() {
-                    let image = fetchedImages[index].image
-                    let url = fetchedImages[index].url
-                    if result.isSafe {
-                        safeImagesForDisplay.append((image: image, url: url))
-                    } else {
-                        unsafeImagesForDisplay.append(UnsafeImageResult(
-                            image: image,
-                            url: url,
-                            features: result.scaryFeatures
-                        ))
-                    }
-                }
-
-                screeningSummary = results.generateDetailedReport()
+                let screeningResults = SCSOverallScreeningResults(results: results)
+                safeResults = screeningResults.safeResults
+                unsafeResults = screeningResults.unsafeResults
+                screeningSummary = screeningResults.generateDetailedReport()
 
             } catch {
                 self.errorMessage = "エラーが発生しました: \(error.localizedDescription)"

@@ -132,11 +132,10 @@ public actor ScaryCatScreener {
 
     private func screenSingleImage(
         _ image: CGImage,
-        at index: Int,
-        probabilityThreshold: Float,
+        probabilityThreshold _: Float,
         enableLogging: Bool
-    ) async throws -> [DetectedFeature] {
-        var allFeatures: [DetectedFeature] = []
+    ) async throws -> [String: Float] {
+        var confidences: [String: Float] = [:]
 
         try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedFeature]?).self) { group in
             for container in self.ovrModels {
@@ -171,42 +170,39 @@ public actor ScaryCatScreener {
 
                 // すべての検出結果を収集
                 for observation in mappedObservations where observation.featureName != "Rest" {
-                    allFeatures.append((featureName: observation.featureName, confidence: observation.confidence))
+                    confidences[observation.featureName] = observation.confidence
                 }
             }
         }
 
-        return allFeatures
+        return confidences
     }
 
     public func screen(
         cgImages: [CGImage],
         probabilityThreshold: Float = 0.85,
         enableLogging: Bool = false
-    ) async throws -> SCScreeningResults {
+    ) async throws -> [SCSIndividualScreeningResult] {
         // 各画像のスクリーニングを直列で実行
-        var results: [IndividualScreeningResult] = []
-        for (index, image) in cgImages.enumerated() {
-            let detectedFeatures = try await screenSingleImage(
+        var results: [SCSIndividualScreeningResult] = []
+        for image in cgImages {
+            let confidences = try await screenSingleImage(
                 image,
-                at: index,
                 probabilityThreshold: probabilityThreshold,
                 enableLogging: enableLogging
             )
-            results.append(IndividualScreeningResult(
-                index: index,
+            results.append(SCSIndividualScreeningResult(
                 cgImage: image,
-                detectedFeatures: detectedFeatures,
+                confidences: confidences,
                 probabilityThreshold: probabilityThreshold
             ))
         }
 
-        let screeningResults = SCScreeningResults(results: results)
-        
         if enableLogging {
-            print(screeningResults.generateDetailedReport())
+            let overallResults = SCSOverallScreeningResults(results: results)
+            print(overallResults.generateDetailedReport())
         }
 
-        return screeningResults
+        return results
     }
 }

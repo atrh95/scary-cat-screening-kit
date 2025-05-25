@@ -90,16 +90,19 @@ Task {
             enableLogging: true
         )
         
+        // 結果をSCSOverallScreeningResultsでラップ
+        let screeningResults = SCSOverallScreeningResults(results: results)
+        
         // 安全な画像のみを取得
-        let safeImages = results.safeImages
+        let safeImages = screeningResults.safeResults.map(\.cgImage)
         
-        // 検出された怖い特徴ごとの画像と信頼度を取得
-        let scaryFeatures = results.scaryFeatures
+        // 危険な画像のみを取得
+        let unsafeImages = screeningResults.unsafeResults.map(\.cgImage)
         
-        // 詳細なレポートを出力
-        results.printDetailedReport()
+        // レポートを出力
+        print(screeningResults.generateDetailedReport())
         
-    } catch let error as NSError { // screenメソッドもScaryCatScreenerError.asNSError()でNSErrorをスローすることがある
+    } catch let error as NSError { // screenメソッドもScaryCatScreenerError.asNSError()でNSErrorを出すことがある
         print("スクリーニング処理でエラーが発生しました: \(error.localizedDescription)")
         print("エラーコード: \(error.code), ドメイン: \(error.domain)")
         if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
@@ -109,49 +112,38 @@ Task {
 }
 ```
 
-`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `CGImage` を一度にスクリーニングできます。このメソッドは、`SCScreeningResults` オブジェクトを返し、これには全ての画像のスクリーニング結果が含まれます。
+`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `CGImage` を一度にスクリーニングできます。各画像のスクリーニング結果は`SCSIndividualScreeningResult`として返され、`SCSOverallScreeningResults`でラップすることで、安全な画像の抽出や危険な画像の分析などが容易になります。
+
+主要な構造は以下の通りです
 
 ```swift
-public struct SCScreeningResults: Sendable {
-    /// 入力画像と同じ順序での各画像のスクリーニング結果
-    public let results: [IndividualScreeningResult]
+/// 個別の画像のスクリーニング結果
+public struct SCSIndividualScreeningResult: Identifiable {
+    public var id = UUID()
+    public var cgImage: CGImage
+    public var confidences: [String: Float]
+    public var probabilityThreshold: Float
     
-    /// 安全と判断された画像の配列
-    public var safeImages: [CGImage] {
-        results.filter { $0.isSafe }.map { $0.cgImage }
-    }
-    
-    /// 検出された怖い特徴ごとの画像と信頼度のマップ
-    public var scaryFeatures: [String: [(image: CGImage, confidence: Float)]] {
-        Dictionary(
-            grouping: results.filter { !$0.isSafe }.flatMap { result in
-                result.scaryFeatures.map { feature in
-                    (feature.featureName, (image: result.cgImage, confidence: feature.confidence))
-                }
-            },
-            by: { $0.0 }
-        ).mapValues { $0.map { $1 } }
+    public var isSafe: Bool {
+        !confidences.values.contains { $0 >= probabilityThreshold }
     }
 }
 
-/// 検出された怖い特徴（クラス名と信頼度のペア）
-public typealias DetectedScaryFeature = (featureName: String, confidence: Float)
-
-/// 個別の画像のスクリーニング結果
-public struct IndividualScreeningResult {
-    /// 画像のインデックス
-    public let index: Int
-    /// スクリーニング対象の画像
-    public let cgImage: CGImage
-    /// 検出された怖い特徴の配列
-    public let scaryFeatures: [DetectedScaryFeature]
+/// 複数のスクリーニング結果を管理する構造体
+public struct SCSOverallScreeningResults {
+    public var results: [SCSIndividualScreeningResult]
     
-    /// 安全と判断されたかどうか
-    public var isSafe: Bool {
-        scaryFeatures.isEmpty
+    public var safeResults: [SCSIndividualScreeningResult] {
+        results.filter { $0.isSafe }
+    }
+    
+    public var unsafeResults: [SCSIndividualScreeningResult] {
+        results.filter { !$0.isSafe }
     }
 }
 ```
+
+完全な実装は [Sources/ScreeningDataTypes.swift](Sources/ScreeningDataTypes.swift) を参照してください。
 
 ### エラーハンドリング
 
