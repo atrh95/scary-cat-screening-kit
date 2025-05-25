@@ -1,6 +1,5 @@
 import CoreGraphics
 import CoreML
-import Kingfisher
 import Vision
 
 public actor ScaryCatScreener {
