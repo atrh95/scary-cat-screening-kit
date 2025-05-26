@@ -50,14 +50,14 @@ struct ScreeningTestView: View {
 
                     if !viewModel.safeResults.isEmpty {
                         ScreeningResultScrollView(
-                            title: "安全な画像",
+                            title: "安全な画像: \(viewModel.safeResults.count)枚",
                             results: viewModel.safeResults
                         )
                     }
 
                     if !viewModel.unsafeResults.isEmpty {
                         ScreeningResultScrollView(
-                            title: "危険な画像",
+                            title: "危険な画像: \(viewModel.unsafeResults.count)枚",
                             results: viewModel.unsafeResults
                         )
                     }
