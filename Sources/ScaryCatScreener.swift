@@ -130,7 +130,7 @@ public actor ScaryCatScreener {
     // MARK: - Public Screening API
 
     private func screenSingleImage(
-        _ image: CGImage,
+        _ imageData: Data,
         probabilityThreshold _: Float,
         enableLogging: Bool
     ) async throws -> [String: Float] {
@@ -140,7 +140,7 @@ public actor ScaryCatScreener {
             for container in self.ovrModels {
                 group.addTask {
                     do {
-                        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+                        let handler = VNImageRequestHandler(data: imageData, options: [:])
                         try handler.perform([container.request])
                         guard let observations = container.request.results as? [VNClassificationObservation] else {
                             if enableLogging {
@@ -178,20 +178,20 @@ public actor ScaryCatScreener {
     }
 
     public func screen(
-        cgImages: [CGImage],
+        imageDataArray: [Data],
         probabilityThreshold: Float = 0.85,
         enableLogging: Bool = false
     ) async throws -> SCSOverallScreeningResults {
         // 各画像のスクリーニングを直列で実行
         var results: [SCSIndividualScreeningResult] = []
-        for image in cgImages {
+        for imageData in imageDataArray {
             let confidences = try await screenSingleImage(
-                image,
+                imageData,
                 probabilityThreshold: probabilityThreshold,
                 enableLogging: enableLogging
             )
             results.append(SCSIndividualScreeningResult(
-                cgImage: image,
+                imageData: imageData,
                 confidences: confidences,
                 probabilityThreshold: probabilityThreshold
             ))

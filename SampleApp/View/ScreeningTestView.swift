@@ -9,7 +9,7 @@ struct ScreeningTestView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    ScreeningButton()
+                    screeningButton()
 
                     // 閾値情報の表示
                     VStack(alignment: .leading, spacing: 4) {

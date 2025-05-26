@@ -79,7 +79,7 @@ class ScreeningViewModel: ObservableObject {
                 }
 
                 // 画像を直列でダウンロード
-                var cgImages: [CGImage] = []
+                var imageDataArray: [Data] = []
                 for response in responses {
                     guard let url = URL(string: response.url) else { continue }
 
@@ -103,10 +103,10 @@ class ScreeningViewModel: ObservableObject {
                             }
                         }
 
-                        guard let cgImage = image.cgImage else { continue }
+                        guard let imageData = image.jpegData(compressionQuality: 0.8) else { continue }
 
                         fetchedImages.append((url: url, image: image))
-                        cgImages.append(cgImage)
+                        imageDataArray.append(imageData)
                     } catch {
                         print("画像のダウンロードに失敗: \(error.localizedDescription)")
                         continue
@@ -114,13 +114,13 @@ class ScreeningViewModel: ObservableObject {
                 }
 
                 // すべての画像をクリーニング
-                let results = try await screener.screen(
-                    cgImages: cgImages,
+                let screeningResults = try await screener.screen(
+                    imageDataArray: imageDataArray,
                     probabilityThreshold: probabilityThreshold,
                     enableLogging: enableLogging
                 )
 
-                let screeningResults = SCSOverallScreeningResults(results: results)
+                // 結果を分類して保存
                 safeResults = screeningResults.safeResults
                 unsafeResults = screeningResults.unsafeResults
                 screeningSummary = screeningResults.generateDetailedReport()
