@@ -178,13 +178,13 @@ public actor ScaryCatScreener {
     }
 
     public func screen(
-        imageDataArray: [Data],
+        imageDataList: [Data],
         probabilityThreshold: Float = 0.85,
         enableLogging: Bool = false
     ) async throws -> SCSOverallScreeningResults {
         // 各画像のスクリーニングを直列で実行
         var results: [SCSIndividualScreeningResult] = []
-        for imageData in imageDataArray {
+        for imageData in imageDataList {
             let confidences = try await screenSingleImage(
                 imageData,
                 probabilityThreshold: probabilityThreshold,

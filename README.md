@@ -15,7 +15,7 @@ ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを�
 ## 設計
 
 *   **`ScaryCatScreener.swift`**: MLModelを読み込み、One-vs-Rest分類ロジックを用いた画像分類を行います。
-*   **`ScreeningDataTypes.swift`**: スクリーニングに関連する主要なデータ構造を定義します。
+*   **`ScreeningDataTypes.swift`**: スクリーニングに関連する主要なデータ構造を定義します。すべての型は`Sendable`プロトコルに準拠しており、並行処理のコンテキストで安全に使用できます。
 *   **`ScaryCatScreenerError.swift`**: 発生しうるエラーを定義します。
 
 ## ディレクトリ構成
@@ -69,7 +69,7 @@ do {
 
 **パラメータ:**
 
--   `cgImages`: `[CGImage]` - スクリーニング対象の画像の配列。
+-   `imageDataList`: `[Data]` - スクリーニング対象の画像データの配列。
 -   `probabilityThreshold`: `Float` (デフォルト: `0.85`)
     -   この値は `0.0` から `1.0` の範囲で指定します。
     -   いずれかのモデルが画像を「安全でない」カテゴリに属すると判定した際の信頼度 (confidence) が、この閾値以上の場合、その画像は総合的に「安全でない」と見なされます。
@@ -77,23 +77,23 @@ do {
     -   `true` を指定すると、内部処理に関する詳細ログ（各画像のスクリーニングレポートなど）がコンソールに出力されます。
 
 ```swift
-let cgImages: [CGImage] = [/* ... スクリーニングしたい画像の配列 ... */] 
+let imageDataList: [Data] = [/* ... スクリーニングしたい画像データの配列 ... */] 
 
 Task {
     do {
         // `screener` は上記で初期化済みの ScaryCatScreener インスタンス
         // 信頼度が85%以上のものを「安全でない」カテゴリの判定基準とし、ログ出力を有効にする例
         let screeningResults = try await screener.screen(
-            cgImages: cgImages, 
+            imageDataList: imageDataList, 
             probabilityThreshold: 0.85, 
             enableLogging: true
         )
         
-        // 安全な画像のみを取得
-        let safeImages: [CGImage] = screeningResults.safeResults.map(\.cgImage)
+        // 安全な画像データのみを取得
+        let safeImageData: [Data] = screeningResults.safeResults.map(\.imageData)
         
-        // 危険な画像のみを取得
-        let unsafeImages: [CGImage] = screeningResults.unsafeResults.map(\.cgImage)
+        // 危険な画像データのみを取得
+        let unsafeImageData: [Data] = screeningResults.unsafeResults.map(\.imageData)
         
         // レポートを出力
         print(screeningResults.generateDetailedReport())
@@ -108,15 +108,15 @@ Task {
 }
 ```
 
-`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドは`SCSOverallScreeningResults`を返します。この構造体は、スクリーニング結果を管理し、安全な画像と危険な画像へのアクセスを提供します。
+`screen(imageDataList:probabilityThreshold:enableLogging:)` メソッドは`SCSOverallScreeningResults`を返します。この構造体は、スクリーニング結果を管理し、安全な画像と危険な画像へのアクセスを提供します。
 
 主要な構造は以下の通りです
 
 ```swift
 /// 個別の画像のスクリーニング結果
-public struct SCSIndividualScreeningResult: Identifiable {
+public struct SCSIndividualScreeningResult: Identifiable, Sendable {
     public var id = UUID()
-    public var cgImage: CGImage
+    public var imageData: Data
     public var confidences: [String: Float]
     public var probabilityThreshold: Float
     
@@ -126,7 +126,7 @@ public struct SCSIndividualScreeningResult: Identifiable {
 }
 
 /// 複数のスクリーニング結果を管理する構造体
-public struct SCSOverallScreeningResults {
+public struct SCSOverallScreeningResults: Sendable {
     public var results: [SCSIndividualScreeningResult]
     
     public var safeResults: [SCSIndividualScreeningResult] {
