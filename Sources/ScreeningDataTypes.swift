@@ -6,7 +6,7 @@ import Vision
 public typealias DetectedFeature = (featureName: String, confidence: Float)
 
 /// 個別の画像のスクリーニング結果
-public struct SCSIndividualScreeningResult: Identifiable {
+public struct SCSIndividualScreeningResult: Identifiable, Sendable {
     public var id = UUID()
     public var imageData: Data
     public var confidences: [String: Float]
@@ -38,7 +38,7 @@ public struct SCSIndividualScreeningResult: Identifiable {
 }
 
 /// 複数のスクリーニング結果を管理する構造体
-public struct SCSOverallScreeningResults {
+public struct SCSOverallScreeningResults: Sendable {
     public var results: [SCSIndividualScreeningResult]
 
     public var safeResults: [SCSIndividualScreeningResult] {
