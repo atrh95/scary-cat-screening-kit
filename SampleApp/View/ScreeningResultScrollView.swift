@@ -39,15 +39,17 @@ struct ScreeningResultItemView: View {
 
     var body: some View {
         VStack {
-            Image(uiImage: UIImage(cgImage: result.cgImage))
-                .resizable()
-                .scaledToFill()
-                .frame(width: 200, height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(accentColor, lineWidth: 2)
-                )
+            if let uiImage = UIImage(data: result.imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 200, height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(accentColor, lineWidth: 2)
+                    )
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(features, id: \.featureName) { feature in

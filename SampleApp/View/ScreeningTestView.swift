@@ -9,7 +9,7 @@ struct ScreeningTestView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    ScreeningButton()
+                    screeningButton()
 
                     // 閾値情報の表示
                     VStack(alignment: .leading, spacing: 4) {
@@ -50,14 +50,14 @@ struct ScreeningTestView: View {
 
                     if !viewModel.safeResults.isEmpty {
                         ScreeningResultScrollView(
-                            title: "安全な画像",
+                            title: "安全な画像: \(viewModel.safeResults.count)枚",
                             results: viewModel.safeResults
                         )
                     }
 
                     if !viewModel.unsafeResults.isEmpty {
                         ScreeningResultScrollView(
-                            title: "危険な画像",
+                            title: "危険な画像: \(viewModel.unsafeResults.count)枚",
                             results: viewModel.unsafeResults
                         )
                     }

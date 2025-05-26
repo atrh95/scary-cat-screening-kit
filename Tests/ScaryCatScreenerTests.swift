@@ -44,20 +44,18 @@ final class ScaryCatScreenerTests: XCTestCase {
         }
 
         // 全ての画像を読み込む
-        var testImages: [CGImage] = []
+        var testImageData: [Data] = []
         var loadedImageURLs: [URL] = []
 
         for fileURL in files {
-            if let imageSource = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
-               let image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
-            {
-                testImages.append(image)
+            if let imageData = try? Data(contentsOf: fileURL) {
+                testImageData.append(imageData)
                 loadedImageURLs.append(fileURL)
                 print("Loaded image: \(fileURL.lastPathComponent)")
             }
         }
 
-        guard !testImages.isEmpty else {
+        guard !testImageData.isEmpty else {
             XCTFail("No valid image files found in TestResources")
             return
         }
@@ -67,19 +65,19 @@ final class ScaryCatScreenerTests: XCTestCase {
         let enableLogging = true
 
         // 全ての画像を一度にスクリーニング
-        let results = try await screener.screen(
-            cgImages: testImages,
+        let screeningResults = try await screener.screen(
+            imageDataArray: testImageData,
             probabilityThreshold: probabilityThreshold,
             enableLogging: enableLogging
         )
 
         // 結果の検証
-        XCTAssertFalse(results.isEmpty, "スクリーニング結果が空です")
-        XCTAssertEqual(results.count, testImages.count, "入力画像数と結果数が一致しません")
+        XCTAssertFalse(screeningResults.results.isEmpty, "スクリーニング結果が空です")
+        XCTAssertEqual(screeningResults.results.count, testImageData.count, "入力画像数と結果数が一致しません")
 
         // 各結果の検証
-        for (index, result) in results.enumerated() {
-            XCTAssertNotNil(result.cgImage, "結果に画像が含まれていません")
+        for (index, result) in screeningResults.results.enumerated() {
+            XCTAssertNotNil(result.imageData, "結果に画像データが含まれていません")
             print("Checking result for: \(loadedImageURLs[index].lastPathComponent)")
 
             // 怖い特徴の検証
@@ -90,35 +88,33 @@ final class ScaryCatScreenerTests: XCTestCase {
             }
         }
 
-        // 全体の結果の検証
-        let overallResults = SCSOverallScreeningResults(results: results)
-
         // 各画像の安全性判定を検証
-        for result in results {
+        for result in screeningResults.results {
             if !result.isSafe {
                 print(
                     "怖い特徴を検出: \(result.confidences.filter { $0.value >= probabilityThreshold }.map { "\($0.key) (\($0.value))" }.joined(separator: ", "))"
                 )
                 XCTAssertTrue(
-                    overallResults.unsafeResults.contains { $0.cgImage == result.cgImage },
+                    screeningResults.unsafeResults.contains { $0.imageData == result.imageData },
                     "閾値を超えた特徴がある画像が危険な画像として判定されていません"
                 )
             } else {
                 XCTAssertTrue(
-                    overallResults.safeResults.contains { $0.cgImage == result.cgImage },
+                    screeningResults.safeResults.contains { $0.imageData == result.imageData },
                     "閾値を超えた特徴がない画像が安全な画像として判定されていません"
                 )
             }
         }
 
         XCTAssertEqual(
-            overallResults.safeResults.count + overallResults.unsafeResults.count,
-            testImages.count,
+            screeningResults.safeResults.count + screeningResults.unsafeResults.count,
+            testImageData.count,
             "安全な画像と危険な画像の合計が入力画像数と一致しません"
         )
 
         // レポートの検証
-        let report = overallResults.generateDetailedReport()
+        let report = screeningResults.generateDetailedReport()
         XCTAssertFalse(report.isEmpty, "レポートが空です")
+        XCTAssertTrue(report.contains("安全"), "レポートに安全性の情報が含まれていません")
     }
 }
