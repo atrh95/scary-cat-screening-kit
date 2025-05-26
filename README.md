@@ -83,14 +83,11 @@ Task {
     do {
         // `screener` は上記で初期化済みの ScaryCatScreener インスタンス
         // 信頼度が85%以上のものを「安全でない」カテゴリの判定基準とし、ログ出力を有効にする例
-        let results = try await screener.screen(
+        let screeningResults = try await screener.screen(
             cgImages: cgImages, 
             probabilityThreshold: 0.85, 
             enableLogging: true
         )
-        
-        // 結果をSCSOverallScreeningResultsでラップ
-        let screeningResults = SCSOverallScreeningResults(results: results)
         
         // 安全な画像のみを取得
         let safeImages: [CGImage] = screeningResults.safeResults.map(\.cgImage)
@@ -111,7 +108,7 @@ Task {
 }
 ```
 
-`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドを使用して、複数の `CGImage` を一度にスクリーニングできます。各画像のスクリーニング結果は`SCSIndividualScreeningResult`として返され、`SCSOverallScreeningResults`でラップすることで、安全な画像の抽出や危険な画像の分析などが容易になります。
+`screen(cgImages:probabilityThreshold:enableLogging:)` メソッドは`SCSOverallScreeningResults`を返します。この構造体は、スクリーニング結果を管理し、安全な画像と危険な画像へのアクセスを提供します。
 
 主要な構造は以下の通りです
 

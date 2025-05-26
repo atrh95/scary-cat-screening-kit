@@ -181,7 +181,7 @@ public actor ScaryCatScreener {
         cgImages: [CGImage],
         probabilityThreshold: Float = 0.85,
         enableLogging: Bool = false
-    ) async throws -> [SCSIndividualScreeningResult] {
+    ) async throws -> SCSOverallScreeningResults {
         // 各画像のスクリーニングを直列で実行
         var results: [SCSIndividualScreeningResult] = []
         for image in cgImages {
@@ -197,11 +197,12 @@ public actor ScaryCatScreener {
             ))
         }
 
+        let overallResults = SCSOverallScreeningResults(results: results)
+        
         if enableLogging {
-            let overallResults = SCSOverallScreeningResults(results: results)
             print(overallResults.generateDetailedReport())
         }
 
-        return results
+        return overallResults
     }
 }
