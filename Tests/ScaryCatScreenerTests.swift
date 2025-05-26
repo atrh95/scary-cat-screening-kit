@@ -66,7 +66,7 @@ final class ScaryCatScreenerTests: XCTestCase {
 
         // 全ての画像を一度にスクリーニング
         let screeningResults = try await screener.screen(
-            imageDataArray: testImageData,
+            imageDataList: testImageData,
             probabilityThreshold: probabilityThreshold,
             enableLogging: enableLogging
         )

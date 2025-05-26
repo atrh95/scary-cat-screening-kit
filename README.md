@@ -2,7 +2,7 @@
 
 ## プロジェクト概要
 
-ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを採用）を使用して画像を分類し、設定可能な確率の閾値に基づいてスクリーニングを行う機能を提供するライブラリです。
+ScaryCatScreeningKitは、One-vs-Restアプローチを採用した機械学習モデルを使用して猫の画像のスクリーニングを行う機能を提供します。
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aktrh/scary-cat-screening-kit)
 
@@ -15,7 +15,7 @@ ScaryCatScreeningKitは、機械学習モデル（One-vs-Restアプローチを�
 ## 設計
 
 *   **`ScaryCatScreener.swift`**: MLModelを読み込み、One-vs-Rest分類ロジックを用いた画像分類を行います。
-*   **`ScreeningDataTypes.swift`**: スクリーニングに関連する主要なデータ構造を定義します。すべての型は`Sendable`プロトコルに準拠しており、並行処理のコンテキストで安全に使用できます。
+*   **`ScreeningDataTypes.swift`**: スクリーニングに関連する主要なデータ構造を定義します。
 *   **`ScaryCatScreenerError.swift`**: 発生しうるエラーを定義します。
 
 ## ディレクトリ構成
