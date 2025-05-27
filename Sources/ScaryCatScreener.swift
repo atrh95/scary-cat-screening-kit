@@ -19,7 +19,7 @@ public actor ScaryCatScreener {
         self.enableLogging = enableLogging
 
         // リソースバンドルの取得
-        let bundle = Bundle(for: type(of: self))
+        let bundle = Bundle.module
         guard let resourceURL = bundle.resourceURL else {
             if enableLogging {
                 print("[ScaryCatScreener] [Error] リソースバンドルが見つかりません")

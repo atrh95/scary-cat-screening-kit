@@ -13,6 +13,9 @@ packages:
   Kingfisher:
     url: https://github.com/onevcat/Kingfisher.git
     from: 7.10.2
+  ScaryCatScreeningKit:
+    url: https://github.com/atrh95/scary-cat-screening-kit.git
+    from: 3.0.2
 
 schemes:
   SampleApp:
@@ -29,25 +32,13 @@ schemes:
       config: Debug
 
 targets:
-  ScaryCatScreeningKit:
-    type: framework
-    platform: iOS
-    sources:
-      - Sources
-    dependencies:
-      - package: Kingfisher
-    settings:
-      base:
-        INFOPLIST_FILE: Sources/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.akitora.ScaryCatScreeningKit
-
   ScaryCatScreeningKitTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - Tests
     dependencies:
-      - target: ScaryCatScreeningKit
+      - package: ScaryCatScreeningKit
     settings:
       base:
         INFOPLIST_FILE: Tests/Info.plist
@@ -63,7 +54,7 @@ targets:
     sources:
       - SampleApp
     dependencies:
-      - target: ScaryCatScreeningKit
+      - package: ScaryCatScreeningKit
       - package: Kingfisher
     settings:
       base:
