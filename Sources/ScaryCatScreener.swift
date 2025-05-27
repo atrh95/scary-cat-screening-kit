@@ -69,51 +69,36 @@ public actor ScaryCatScreener {
     /// リソースディレクトリ内の.mlmodelcファイルを検索
     private func findModelFiles(in resourceURL: URL) async throws -> [URL] {
         let fileManager = FileManager.default
+        let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
 
         if enableLogging {
             print("[ScaryCatScreener] [Debug] 検索ディレクトリ: \(resourceURL.path)")
         }
 
-        // ディレクトリの存在確認
-        var isDirectory: ObjCBool = false
-        let exists = fileManager.fileExists(atPath: resourceURL.path, isDirectory: &isDirectory)
+        guard let enumerator = fileManager.enumerator(
+            at: resourceURL,
+            includingPropertiesForKeys: resourceKeys,
+            options: .skipsHiddenFiles
+        ) else {
+            if enableLogging {
+                print("[ScaryCatScreener] [Error] ディレクトリの列挙に失敗: \(resourceURL.path)")
+            }
+            throw ScaryCatScreenerError.modelLoadingFailed(originalError: ScaryCatScreenerError.modelNotFound)
+        }
+
+        var modelFileURLs: [URL] = []
+        for case let fileURL as URL in enumerator where fileURL.pathExtension == "mlmodelc" {
+            modelFileURLs.append(fileURL)
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] モデルファイルを検出: \(fileURL.lastPathComponent)")
+            }
+        }
 
         if enableLogging {
-            print("[ScaryCatScreener] [Debug] ディレクトリ存在確認: exists=\(exists), isDirectory=\(isDirectory.boolValue)")
+            print("[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFileURLs.map(\.lastPathComponent).joined(separator: ", "))")
         }
 
-        guard exists, isDirectory.boolValue else {
-            if enableLogging {
-                print("[ScaryCatScreener] [Debug] ディレクトリが存在しません: \(resourceURL.path)")
-            }
-            throw ScaryCatScreenerError.modelNotFound
-        }
-
-        do {
-            // 直接ファイルを列挙
-            let contents = try fileManager.contentsOfDirectory(atPath: resourceURL.path)
-
-            if enableLogging {
-                print("[ScaryCatScreener] [Debug] ディレクトリ内のファイル一覧: \(contents.joined(separator: ", "))")
-            }
-
-            // .mlmodelcファイルのみをフィルタリング
-            let modelFiles = contents.filter { $0.hasSuffix(".mlmodelc") }
-
-            if enableLogging {
-                print("[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFiles.joined(separator: ", "))")
-            }
-
-            // URLに変換
-            let modelFileURLs = modelFiles.map { resourceURL.appendingPathComponent($0) }
-            return modelFileURLs
-
-        } catch {
-            if enableLogging {
-                print("[ScaryCatScreener] [Debug] ディレクトリの内容取得に失敗: \(error.localizedDescription)")
-            }
-            throw ScaryCatScreenerError.modelLoadingFailed(originalError: error)
-        }
+        return modelFileURLs
     }
 
     /// モデルファイルからVisionモデルとリクエストを並列にロード
