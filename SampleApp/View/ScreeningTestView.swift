@@ -78,17 +78,20 @@ struct ScreeningTestView: View {
             },
             label: {
                 HStack {
-                    Image(systemName: "arrow.clockwise.icloud")
+                    Image(systemName: "square.and.arrow.down")
                     Text(
                         viewModel.isLoading && !viewModel.isScreenerReady ? "スクリーナー初期化中..." :
-                            (viewModel.isLoading ? "処理中..." : "APIから猫画像を取得してスクリーニング")
+                            (viewModel.isLoading ? "処理中..." : "APIから画像を取得してスクリーニング")
                     )
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(
                     viewModel.isLoading && !viewModel.isScreenerReady ? Color.orange :
-                        (viewModel.isLoading ? Color.gray : Color.cyan)
+                        (
+                            viewModel.isLoading || !viewModel.isScreenerReady || viewModel.errorMessage != nil ? Color
+                                .gray : Color.cyan
+                        )
                 )
                 .foregroundColor(.white)
                 .cornerRadius(10)
@@ -97,7 +100,7 @@ struct ScreeningTestView: View {
             }
         )
         .disabled(
-            viewModel.isLoading || !viewModel.isScreenerReady
+            viewModel.isLoading || !viewModel.isScreenerReady || viewModel.errorMessage != nil
         )
         .padding(.horizontal)
         .padding(.top)

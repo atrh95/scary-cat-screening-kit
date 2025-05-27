@@ -21,7 +21,15 @@ public actor ScaryCatScreener {
         // リソースバンドルの取得
         let bundle = Bundle(for: type(of: self))
         guard let resourceURL = bundle.resourceURL else {
+            if enableLogging {
+                print("[ScaryCatScreener] [Error] リソースバンドルが見つかりません")
+            }
             throw ScaryCatScreenerError.resourceBundleNotFound
+        }
+
+        if enableLogging {
+            print("[ScaryCatScreener] [Debug] リソースバンドル: \(bundle.bundlePath)")
+            print("[ScaryCatScreener] [Debug] リソースURL: \(resourceURL.path)")
         }
 
         // .mlmodelcファイルの検索
@@ -61,22 +69,51 @@ public actor ScaryCatScreener {
     /// リソースディレクトリ内の.mlmodelcファイルを検索
     private func findModelFiles(in resourceURL: URL) async throws -> [URL] {
         let fileManager = FileManager.default
-        let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
 
-        guard let enumerator = fileManager.enumerator(
-            at: resourceURL,
-            includingPropertiesForKeys: resourceKeys,
-            options: .skipsHiddenFiles
-        ) else {
-            throw ScaryCatScreenerError.modelLoadingFailed(originalError: ScaryCatScreenerError.modelNotFound)
+        if enableLogging {
+            print("[ScaryCatScreener] [Debug] 検索ディレクトリ: \(resourceURL.path)")
         }
 
-        var modelFileURLs: [URL] = []
-        for case let fileURL as URL in enumerator where fileURL.pathExtension == "mlmodelc" {
-            modelFileURLs.append(fileURL)
+        // ディレクトリの存在確認
+        var isDirectory: ObjCBool = false
+        let exists = fileManager.fileExists(atPath: resourceURL.path, isDirectory: &isDirectory)
+
+        if enableLogging {
+            print("[ScaryCatScreener] [Debug] ディレクトリ存在確認: exists=\(exists), isDirectory=\(isDirectory.boolValue)")
         }
 
-        return modelFileURLs
+        guard exists, isDirectory.boolValue else {
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] ディレクトリが存在しません: \(resourceURL.path)")
+            }
+            throw ScaryCatScreenerError.modelNotFound
+        }
+
+        do {
+            // 直接ファイルを列挙
+            let contents = try fileManager.contentsOfDirectory(atPath: resourceURL.path)
+
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] ディレクトリ内のファイル一覧: \(contents.joined(separator: ", "))")
+            }
+
+            // .mlmodelcファイルのみをフィルタリング
+            let modelFiles = contents.filter { $0.hasSuffix(".mlmodelc") }
+
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFiles.joined(separator: ", "))")
+            }
+
+            // URLに変換
+            let modelFileURLs = modelFiles.map { resourceURL.appendingPathComponent($0) }
+            return modelFileURLs
+
+        } catch {
+            if enableLogging {
+                print("[ScaryCatScreener] [Debug] ディレクトリの内容取得に失敗: \(error.localizedDescription)")
+            }
+            throw ScaryCatScreenerError.modelLoadingFailed(originalError: error)
+        }
     }
 
     /// モデルファイルからVisionモデルとリクエストを並列にロード
@@ -198,7 +235,7 @@ public actor ScaryCatScreener {
         }
 
         let overallResults = SCSOverallScreeningResults(results: results)
-        
+
         if enableLogging {
             print(overallResults.generateDetailedReport())
         }

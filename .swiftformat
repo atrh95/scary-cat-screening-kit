@@ -10,6 +10,15 @@
 
 # 除外するディレクトリ（ビルド成果物、依存関係など）
 --exclude **/*.generated.swift
+--exclude **/*.xcodeproj/**
+--exclude **/*.xcassets/**
+--exclude **/Assets.xcassets/**
+--exclude **/Preview Content/**
+--exclude **/TestResources/**
+--exclude **/OutputModels/**
+--exclude **/ci-outputs/**
+--exclude **/.DS_Store
+--exclude **/*.plist
 
 #-------------------------------------------------------------------
 # Indentation & Spacing

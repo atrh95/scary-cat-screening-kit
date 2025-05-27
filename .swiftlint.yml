@@ -20,6 +20,15 @@ excluded:
   - xcbuild
   - "**/*.generated.swift"
   - .cursor
+  - "**/*.xcodeproj"
+  - "**/*.xcassets"
+  - "**/Assets.xcassets"
+  - "**/Preview Content"
+  - "**/TestResources"
+  - "**/OutputModels"
+  - "**/ci-outputs"
+  - "**/.DS_Store"
+  - "**/*.plist"
 
 #-------------------------------------------------------------------
 # Rule Configuration
