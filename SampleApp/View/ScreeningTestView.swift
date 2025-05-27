@@ -88,7 +88,10 @@ struct ScreeningTestView: View {
                 .frame(maxWidth: .infinity)
                 .background(
                     viewModel.isLoading && !viewModel.isScreenerReady ? Color.orange :
-                        (viewModel.isLoading || !viewModel.isScreenerReady || viewModel.errorMessage != nil ? Color.gray : Color.cyan)
+                        (
+                            viewModel.isLoading || !viewModel.isScreenerReady || viewModel.errorMessage != nil ? Color
+                                .gray : Color.cyan
+                        )
                 )
                 .foregroundColor(.white)
                 .cornerRadius(10)

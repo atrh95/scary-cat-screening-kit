@@ -70,20 +70,20 @@ public actor ScaryCatScreener {
     private func findModelFiles(in resourceURL: URL) async throws -> [URL] {
         let fileManager = FileManager.default
 
-        if self.enableLogging {
+        if enableLogging {
             print("[ScaryCatScreener] [Debug] 検索ディレクトリ: \(resourceURL.path)")
         }
 
         // ディレクトリの存在確認
         var isDirectory: ObjCBool = false
         let exists = fileManager.fileExists(atPath: resourceURL.path, isDirectory: &isDirectory)
-        
-        if self.enableLogging {
+
+        if enableLogging {
             print("[ScaryCatScreener] [Debug] ディレクトリ存在確認: exists=\(exists), isDirectory=\(isDirectory.boolValue)")
         }
 
-        guard exists && isDirectory.boolValue else {
-            if self.enableLogging {
+        guard exists, isDirectory.boolValue else {
+            if enableLogging {
                 print("[ScaryCatScreener] [Debug] ディレクトリが存在しません: \(resourceURL.path)")
             }
             throw ScaryCatScreenerError.modelNotFound
@@ -92,15 +92,15 @@ public actor ScaryCatScreener {
         do {
             // 直接ファイルを列挙
             let contents = try fileManager.contentsOfDirectory(atPath: resourceURL.path)
-            
-            if self.enableLogging {
+
+            if enableLogging {
                 print("[ScaryCatScreener] [Debug] ディレクトリ内のファイル一覧: \(contents.joined(separator: ", "))")
             }
 
             // .mlmodelcファイルのみをフィルタリング
             let modelFiles = contents.filter { $0.hasSuffix(".mlmodelc") }
-            
-            if self.enableLogging {
+
+            if enableLogging {
                 print("[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFiles.joined(separator: ", "))")
             }
 
@@ -109,7 +109,7 @@ public actor ScaryCatScreener {
             return modelFileURLs
 
         } catch {
-            if self.enableLogging {
+            if enableLogging {
                 print("[ScaryCatScreener] [Debug] ディレクトリの内容取得に失敗: \(error.localizedDescription)")
             }
             throw ScaryCatScreenerError.modelLoadingFailed(originalError: error)
@@ -235,7 +235,7 @@ public actor ScaryCatScreener {
         }
 
         let overallResults = SCSOverallScreeningResults(results: results)
-        
+
         if enableLogging {
             print(overallResults.generateDetailedReport())
         }
