@@ -15,7 +15,8 @@ packages:
     from: 7.10.2
   ScaryCatScreeningKit:
     url: https://github.com/atrh95/scary-cat-screening-kit.git
-    from: 3.0.2
+    from: 3.0.3
+    exact: true
 
 schemes:
   SampleApp:
