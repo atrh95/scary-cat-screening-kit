@@ -5,7 +5,7 @@ on:
     outputs:
       test_result:
         description: "Test Result"
-        value: ${{ jobs.report-status.outputs.test_result }}
+        value: ${{ jobs.unit-test.outputs.test_result }}
 
 jobs:
   unit-test:
@@ -13,7 +13,7 @@ jobs:
     env:
       MINT_PATH: ${{ github.workspace }}/.mint
     outputs:
-      result: ${{ steps.unit_tests.outcome }}
+      test_result: ${{ steps.process_test_results.outputs.result }}
     steps:
     - uses: actions/checkout@v4
 
@@ -59,10 +59,10 @@ jobs:
         echo "シミュレータ ID (${{ steps.select_simulator.outputs.simulator_id }}) を使用してユニットテストを実行します"
         xcodebuild test \
           -project "SampleApp.xcodeproj" \
-          -scheme "SampleApp" \
+          -scheme "ScaryCatScreeningKitTests" \
           -destination "platform=iOS Simulator,id=${{ steps.select_simulator.outputs.simulator_id }}" \
           -configuration Debug \
-          -only-testing:ScaryCatScreeningKitTests \
+          -enableCodeCoverage NO \
           CODE_SIGNING_ALLOWED=NO \
           -resultBundlePath ./ci-outputs/test-results/unit/TestResults.xcresult \
           | xcbeautify --report junit --report-path ./ci-outputs/test-results/unit/junit.xml
@@ -70,13 +70,33 @@ jobs:
         ls -la ./ci-outputs/test-results/unit/
       continue-on-error: true
 
-    - name: Verify Unit Test Results
-      if: steps.unit_tests.outcome != 'success'
+    - name: Process Test Results
+      id: process_test_results
+      if: always()
       run: |
-        echo "❌ Error: Unit tests failed or did not produce results."
         RESULT_BUNDLE_PATH="./ci-outputs/test-results/unit/TestResults.xcresult"
         if [ ! -d "$RESULT_BUNDLE_PATH" ]; then
-          echo "Result bundle not found at $RESULT_BUNDLE_PATH"
+          echo "❌ Error: Test results not found at $RESULT_BUNDLE_PATH"
+          echo "result=failure" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # xcresulttoolを使用してテスト結果を解析
+        TEST_SUMMARY=$(xcrun xcresulttool get --format json --path "$RESULT_BUNDLE_PATH" | jq -r '.actions._values[0].actionResult.testsRef.summaryRef.summary')
+        
+        if [ "$TEST_SUMMARY" = "null" ]; then
+          echo "❌ Error: Failed to parse test results"
+          echo "result=failure" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # テスト結果の判定
+        if [[ "$TEST_SUMMARY" == *"failureCount\":0"* ]]; then
+          echo "✅ All tests passed"
+          echo "result=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Some tests failed"
+          echo "result=failure" >> $GITHUB_OUTPUT
         fi
 
     - name: Upload Unit Test Results
@@ -91,17 +111,11 @@ jobs:
     needs: [unit-test]
     runs-on: ubuntu-latest
     if: always()
-    outputs:
-      test_result: ${{ steps.set_status.outputs.result }}
     steps:
-      - name: Check test job outcomes and set final status
-        id: set_status
+      - name: Report Test Status
         run: |
-          echo "Unit Test job outcome: ${{ needs.unit-test.result }}"
-          if [[ "${{ needs.unit-test.result }}" == "success" ]]; then
-            echo "Unit test job succeeded."
-            echo "result=success" >> $GITHUB_OUTPUT
+          if [[ "${{ needs.unit-test.outputs.test_result }}" == "success" ]]; then
+            echo "✅ Unit tests completed successfully"
           else
-            echo "Unit test job failed or was skipped."
-            echo "result=failure" >> $GITHUB_OUTPUT
+            echo "❌ Unit tests failed"
           fi 
