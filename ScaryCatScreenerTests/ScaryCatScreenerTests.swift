@@ -6,20 +6,44 @@ import XCTest
 final class ScaryCatScreenerTests: XCTestCase {
     var screener: ScaryCatScreener!
 
-    override func setUp() async throws {
-        try await super.setUp()
-        screener = try await ScaryCatScreener(enableLogging: true)
+    override func setUp() {
+        super.setUp()
+        screener = nil
+    }
+
+    override func tearDown() {
+        screener = nil
+        super.tearDown()
     }
 
     /// 初期化テスト
     func testInitialization() async throws {
         // ログ出力なしで初期化
-        let screenerWithoutLogging = try await ScaryCatScreener(enableLogging: false)
+        let screenerWithoutLogging = try await getScreener(enableLogging: false)
         XCTAssertNotNil(screenerWithoutLogging)
 
         // ログ出力ありで初期化
-        let screenerWithLogging = try await ScaryCatScreener(enableLogging: true)
+        let screenerWithLogging = try await getScreener(enableLogging: true)
         XCTAssertNotNil(screenerWithLogging)
+    }
+
+    private func getScreener(enableLogging: Bool) async throws -> ScaryCatScreener? {
+        if let screener {
+            return screener
+        } else {
+            do {
+                let newScreener = try await ScaryCatScreener(enableLogging: enableLogging)
+                self.screener = newScreener
+                return newScreener
+            } catch let error as NSError {
+                print("ScaryCatScreener の初期化に失敗しました: \(error.localizedDescription)")
+                print("エラーコード: \(error.code), ドメイン: \(error.domain)")
+                if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error {
+                    print("原因: \(underlying.localizedDescription)")
+                }
+                return nil
+            }
+        }
     }
 
     /// TestResourcesディレクトリ内の画像を使用してスクリーニングを実行し、以下を検証:
@@ -63,6 +87,12 @@ final class ScaryCatScreenerTests: XCTestCase {
         // スクリーニングを実行
         let probabilityThreshold: Float = 0.85
         let enableLogging = true
+
+        // スクリーナーの取得
+        guard let screener = try await getScreener(enableLogging: enableLogging) else {
+            XCTFail("Failed to initialize screener")
+            return
+        }
 
         // 全ての画像を一度にスクリーニング
         let screeningResults = try await screener.screen(

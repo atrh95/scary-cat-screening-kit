@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-package:
-    runs-on: macos-latest
+    runs-on: macos-15
     outputs:
       result: ${{ steps.run_tests.outcome }}
     steps:
