@@ -36,7 +36,6 @@ let package = Package(
             resources: [
                 .process("TestResources")
             ]
-        ),
-    ],
-    swiftLanguageModes: [.v6]
+        )
+    ]
 )
