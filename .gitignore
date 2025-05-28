@@ -23,6 +23,7 @@ UserInterfaceState.xcuserstate
 DerivedData/
 Build/d
 ci-outputs/
+TestResults.xcresult
 
 *.mlmodel # 他の場所のmlmodelも無視する場合は残す
 

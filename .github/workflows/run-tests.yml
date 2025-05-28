@@ -37,6 +37,18 @@ jobs:
     - name: Generate Xcode Project
       run: mint run xcodegen generate
 
+    - name: Generate Core ML Models
+      run: |
+        echo "Generating Core ML models..."
+        # Compile each model in the same directory
+        xcrun coremlcompiler compile Sources/OvRModels/ScaryCatScreeningML_OvR_black_and_white_v22.mlmodel Sources/OvRModels/
+        xcrun coremlcompiler compile Sources/OvRModels/ScaryCatScreeningML_OvR_human_hands_detected_v22.mlmodel Sources/OvRModels/
+        xcrun coremlcompiler compile Sources/OvRModels/ScaryCatScreeningML_OvR_mouth_open_v22.mlmodel Sources/OvRModels/
+        xcrun coremlcompiler compile Sources/OvRModels/ScaryCatScreeningML_OvR_sphynx_v22.mlmodel Sources/OvRModels/
+        
+        echo "Core ML models generation completed"
+        ls -la Sources/OvRModels/*.mlmodelc
+
     - name: Create Test Output Directories
       run: mkdir -p ci-outputs/test-results/unit
         
