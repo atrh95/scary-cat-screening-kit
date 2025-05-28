@@ -58,7 +58,7 @@ public struct SCSOverallScreeningResults: Sendable {
 
     /// 詳細なレポートを生成
     public func generateDetailedReport() -> String {
-        results.enumerated().map { index, result in
+        results.map { result in
             """
             --------------------------------
             【画像 \(result.originalIndex + 1)】

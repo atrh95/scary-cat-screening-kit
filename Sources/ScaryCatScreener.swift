@@ -95,7 +95,9 @@ public actor ScaryCatScreener {
         }
 
         if enableLogging {
-            print("[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFileURLs.map(\.lastPathComponent).joined(separator: ", "))")
+            print(
+                "[ScaryCatScreener] [Debug] 検出されたモデル: \(modelFileURLs.map(\.lastPathComponent).joined(separator: ", "))"
+            )
         }
 
         return modelFileURLs
