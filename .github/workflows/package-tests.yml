@@ -3,8 +3,8 @@ name: Swift Package Tests
 on:
   workflow_call:
     outputs:
-      package_test_result:
-        description: "Swift Package Test Result" 
+      test_result:
+        description: "Test Result" 
         value: ${{ jobs.test-package.outputs.result }}
 
 jobs:
@@ -21,40 +21,6 @@ jobs:
         with:
           xcode-version: '16.2'
 
-      - name: Create Test Output Directory
-        run: mkdir -p ci-outputs/test-results/package
-
-      - name: Build Swift Package
-        id: build_package
-        run: |
-          echo "Swift Packageをビルド中..."
-          swift build
-        continue-on-error: false
-
-      - name: Test Swift Package 
+      - name: Run Tests
         id: run_tests
-        if: steps.build_package.outcome == 'success'
-        run: |
-          echo "Swift Packageをテスト中..."
-          swift test --xunit-output ci-outputs/test-results/package/results.xml
-        continue-on-error: true
-
-      - name: Upload Swift Package Test Results
-        if: always() && steps.build_package.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-test-results-${{ github.run_id }}
-          path: ci-outputs/test-results/package
-          retention-days: 7
-
-      - name: Check Test Step Outcome 
-        if: always() && steps.build_package.outcome == 'success' && steps.run_tests.outcome != 'success'
-        run: |
-          echo "Swift Package のテストが失敗しました。"
-          # exit 1
-          
-      - name: Check Build Step Outcome 
-        if: steps.build_package.outcome != 'success'
-        run: |
-          echo "Swift Package のビルドが失敗しました。"
-          # exit 1 
+        run: swift test 
