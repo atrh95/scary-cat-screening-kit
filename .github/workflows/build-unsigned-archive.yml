@@ -1,0 +1,82 @@
+name: Build Unsigned Archive
+
+on:
+  workflow_call:
+
+jobs:
+  archive:
+    runs-on: macos-latest
+    env:
+      MINT_PATH: ${{ github.workspace }}/.mint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.2'
+
+      - name: Install Mint
+        run: brew install mint
+
+      - name: Cache Mint packages
+        uses: actions/cache@v4
+        id: cache-mint-packages
+        with:
+          path: ${{ github.workspace }}/.mint
+          key: ${{ runner.os }}-mint-${{ hashFiles('**/Mintfile') }}
+          restore-keys: |
+            ${{ runner.os }}-mint-
+
+      - name: Generate Xcode Project
+        run: mint run xcodegen generate
+          
+      - name: Cache SPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./ci-outputs/production/archives/DerivedData/Build/SourcePackages/checkouts 
+            ~/.swiftpm/xcode-package-cache
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build Release Version (Unsigned)
+        run: |
+          set -euo pipefail
+
+          # Create build directories (including subdirectory for archive)
+          # DerivedData will also be included here
+          mkdir -p ./ci-outputs/production/archives/DerivedData
+
+          # Build unsigned archive
+          echo "Building unsigned archive for SampleApp..."
+          xcodebuild archive \
+            -scheme "SampleApp" \
+            -configuration Release \
+            -archivePath "./ci-outputs/production/archives/SampleApp.xcarchive" \
+            -derivedDataPath "./ci-outputs/production/archives/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Verify Archive Contents
+        run: |
+          set -euo pipefail
+          echo "Checking archive contents..."
+          ARCHIVE_PATH="./ci-outputs/production/archives/SampleApp.xcarchive"
+          if [ ! -d "$ARCHIVE_PATH" ]; then
+            echo "Error: Archive not found at expected location ($ARCHIVE_PATH)."
+            exit 1
+          fi
+          echo "✅ Archive content verified."
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-archive
+          path: |-
+            ./ci-outputs/production/archives/SampleApp.xcarchive
+          retention-days: 7

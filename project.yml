@@ -9,12 +9,26 @@ options:
   generateEmptyDirectories: true
   createIntermediateGroups: true
 
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MARKETING_VERSION: 1.0
+    CURRENT_PROJECT_VERSION: 1
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+
 packages:
   Kingfisher:
     url: https://github.com/onevcat/Kingfisher.git
     from: 7.10.2
   ScaryCatScreeningKit:
     path: .
+    settings:
+      base:
+        SWIFT_VERSION: 6.0
 
 schemes:
   SampleApp:
@@ -29,6 +43,18 @@ schemes:
       config: Release
     test:
       config: Debug
+      gatherCoverageData: false
+      targets:
+        - ScaryCatScreeningKitTests
+
+  ScaryCatScreeningKitTests:
+    build:
+      targets:
+        ScaryCatScreeningKitTests: test
+    test:
+      config: Debug
+      targets:
+        - ScaryCatScreeningKitTests
 
 targets:
   ScaryCatScreeningKitTests:
@@ -37,6 +63,7 @@ targets:
     sources:
       - Tests
     dependencies:
+      - target: SampleApp
       - package: ScaryCatScreeningKit
     settings:
       base:
@@ -44,8 +71,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.akitorahayashi.ScaryCatScreeningKitTests
         TARGETED_DEVICE_FAMILY: 1
         SUPPORTED_PLATFORMS: iphonesimulator
-    resources:
-      - Tests/TestResources
+        TEST_TARGET_NAME: SampleApp
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_TESTABILITY: YES
+        SWIFT_VERSION: 6.0
 
   SampleApp:
     type: application
@@ -59,3 +88,6 @@ targets:
       base:
         INFOPLIST_FILE: SampleApp/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.akitorahayashi.ScaryCatScreeningKit.SampleApp
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_TESTABILITY: YES
+        SWIFT_VERSION: 6.0
