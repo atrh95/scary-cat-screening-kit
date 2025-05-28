@@ -11,6 +11,7 @@ public struct SCSIndividualScreeningResult: Identifiable, Sendable {
     public var imageData: Data
     public var confidences: [String: Float]
     public var probabilityThreshold: Float
+    public var originalIndex: Int
 
     public var isSafe: Bool {
         !confidences.values.contains { $0 >= probabilityThreshold }
@@ -19,11 +20,13 @@ public struct SCSIndividualScreeningResult: Identifiable, Sendable {
     public init(
         imageData: Data,
         confidences: [String: Float],
-        probabilityThreshold: Float
+        probabilityThreshold: Float,
+        originalIndex: Int
     ) {
         self.imageData = imageData
         self.confidences = confidences
         self.probabilityThreshold = probabilityThreshold
+        self.originalIndex = originalIndex
     }
 
     /// 詳細なレポートを生成
@@ -58,7 +61,7 @@ public struct SCSOverallScreeningResults: Sendable {
         results.enumerated().map { index, result in
             """
             --------------------------------
-            【画像 \(index + 1)】
+            【画像 \(result.originalIndex + 1)】
             \(result.generateDetailedReport())
             --------------------------------
             """

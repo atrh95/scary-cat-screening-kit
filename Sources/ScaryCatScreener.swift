@@ -206,7 +206,7 @@ public actor ScaryCatScreener {
     ) async throws -> SCSOverallScreeningResults {
         // 各画像のスクリーニングを直列で実行
         var results: [SCSIndividualScreeningResult] = []
-        for imageData in imageDataList {
+        for (index, imageData) in imageDataList.enumerated() {
             let confidences = try await screenSingleImage(
                 imageData,
                 probabilityThreshold: probabilityThreshold,
@@ -215,7 +215,8 @@ public actor ScaryCatScreener {
             results.append(SCSIndividualScreeningResult(
                 imageData: imageData,
                 confidences: confidences,
-                probabilityThreshold: probabilityThreshold
+                probabilityThreshold: probabilityThreshold,
+                originalIndex: index
             ))
         }
 

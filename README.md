@@ -111,6 +111,7 @@ public struct SCSIndividualScreeningResult: Identifiable, Sendable {
     public var imageData: Data
     public var confidences: [String: Float]
     public var probabilityThreshold: Float
+    public var originalIndex: Int  // 元の配列中のインデックスを保持
     
     public var isSafe: Bool {
         !confidences.values.contains { $0 >= probabilityThreshold }
