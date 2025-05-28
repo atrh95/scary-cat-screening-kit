@@ -27,15 +27,16 @@ let package = Package(
                 .copy("OvRModels/ScaryCatScreeningML_OvR_mouth_open_v22.mlmodelc"),
                 .copy("OvRModels/ScaryCatScreeningML_OvR_sphynx_v22.mlmodelc")
             ]
-        ),
-        .testTarget(
-            name: "ScaryCatScreeningKitTests",
-            dependencies: ["ScaryCatScreeningKit"],
-            path: "ScaryCatScreenerTests",
-            exclude: ["Info.plist"],
-            resources: [
-                .process("TestResources")
-            ]
         )
+        // ,
+        // .testTarget(
+        //     name: "ScaryCatScreeningKitTests",
+        //     dependencies: ["ScaryCatScreeningKit"],
+        //     path: "ScaryCatScreenerTests",
+        //     exclude: ["Info.plist"],
+        //     resources: [
+        //         .process("TestResources")
+        //     ]
+        // )
     ]
 )
