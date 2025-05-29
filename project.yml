@@ -61,7 +61,6 @@ targets:
       - package: ScaryCatScreeningKit
     settings:
       base:
-        INFOPLIST_FILE: Tests/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.akitorahayashi.ScaryCatScreeningKitTests
         TARGETED_DEVICE_FAMILY: 1
         SUPPORTED_PLATFORMS: iphonesimulator

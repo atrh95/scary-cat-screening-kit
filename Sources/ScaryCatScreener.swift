@@ -41,15 +41,6 @@ public actor ScaryCatScreener {
             throw ScaryCatScreenerError.modelNotFound
         }
 
-        // 環境に応じたログ出力
-        if self.enableLogging {
-            #if targetEnvironment(simulator)
-                print("[ScaryCatScreener] [Info] シミュレータ環境ではCPUのみを使用")
-            #else
-                print("[ScaryCatScreener] [Info] 実機環境では全計算ユニットを使用")
-            #endif
-        }
-
         // モデルのロード
         let loadedModels = try await loadModels(from: modelFileURLs)
         guard !loadedModels.isEmpty else {
@@ -127,11 +118,7 @@ public actor ScaryCatScreener {
     private func loadModel(from url: URL) async throws -> SCSModelContainer {
         // MLModelConfigurationの設定
         let config = MLModelConfiguration()
-        #if targetEnvironment(simulator)
-            config.computeUnits = .cpuOnly
-        #else
-            config.computeUnits = .all
-        #endif
+        config.computeUnits = .all
 
         // モデルのロードと設定
         let mlModel = try MLModel(contentsOf: url, configuration: config)
@@ -140,7 +127,17 @@ public actor ScaryCatScreener {
         // Visionリクエストの設定
         let request = VNCoreMLRequest(model: visionModel)
         #if targetEnvironment(simulator)
+        if #available(iOS 17.0, *) {
+            let allDevices = MLComputeDevice.allComputeDevices
+            for device in allDevices {
+                if device.description.contains("MLCPUComputeDevice") {
+                    request.setComputeDevice(.some(device), for: .main)
+                    break
+                }
+            }
+        } else {
             request.usesCPUOnly = true
+        }
         #endif
         request.imageCropAndScaleOption = .scaleFit
 
