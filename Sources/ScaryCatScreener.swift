@@ -98,41 +98,29 @@ public final actor ScaryCatScreener {
     ) async throws -> [String: Float] {
         var confidences: [String: Float] = [:]
 
-        try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedFeature]?).self) { group in
-            for container in await self.ovrModels {
-                group.addTask {
-                    do {
-                        let handler = VNImageRequestHandler(data: imageData, options: [:])
-                        try handler.perform([container.request])
-                        guard let observations = container.request.results as? [VNClassificationObservation] else {
-                            if enableLogging {
-                                print("[ScaryCatScreener] [Warning] モデル\(container.modelFileName)の結果が不正な形式")
-                            }
-                            return (container.modelFileName, nil)
-                        }
-                        let mappedObservations = observations.map { (
-                            featureName: $0.identifier,
-                            confidence: $0.confidence
-                        ) }
-                        return (container.modelFileName, mappedObservations)
-                    } catch {
-                        if enableLogging {
-                            print(
-                                "[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)"
-                            )
-                        }
-                        throw ScaryCatScreenerError.predictionFailed(originalError: error)
+        // 各モデルを順番に処理
+        for container in await ovrModels {
+            do {
+                let handler = VNImageRequestHandler(data: imageData, options: [:])
+                try handler.perform([container.request])
+                guard let observations = container.request.results as? [VNClassificationObservation] else {
+                    if enableLogging {
+                        print("[ScaryCatScreener] [Warning] モデル\(container.modelFileName)の結果が不正な形式")
                     }
+                    continue
                 }
-            }
 
-            for try await result in group {
-                guard let mappedObservations = result.observations else { continue }
-
-                // すべての検出結果を収集
-                for observation in mappedObservations where observation.featureName != "Rest" {
-                    confidences[observation.featureName] = observation.confidence
+                // 検出結果を収集
+                for observation in observations where observation.identifier.lowercased() != "rest" {
+                    confidences[observation.identifier] = observation.confidence
                 }
+            } catch {
+                if enableLogging {
+                    print(
+                        "[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)"
+                    )
+                }
+                throw ScaryCatScreenerError.predictionFailed(originalError: error)
             }
         }
 
@@ -210,11 +198,9 @@ public final actor ScaryCatScreener {
         #if targetEnvironment(simulator)
             if #available(iOS 17.0, *) {
                 let allDevices = MLComputeDevice.allComputeDevices
-                for device in allDevices {
-                    if device.description.contains("MLCPUComputeDevice") {
-                        request.setComputeDevice(.some(device), for: .main)
-                        break
-                    }
+                for device in allDevices where device.description.contains("MLCPUComputeDevice") {
+                    request.setComputeDevice(.some(device), for: .main)
+                    break
                 }
             } else {
                 request.usesCPUOnly = true
