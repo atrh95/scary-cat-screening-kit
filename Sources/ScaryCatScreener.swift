@@ -2,7 +2,7 @@ import CoreGraphics
 import CoreML
 import Vision
 
-public actor ScaryCatScreener {
+public final actor ScaryCatScreener {
     private struct SCSModelContainer: @unchecked Sendable {
         let visionModel: VNCoreMLModel
         let modelFileName: String
@@ -57,6 +57,88 @@ public actor ScaryCatScreener {
         }
     }
 
+    // MARK: - Public Screening API
+
+    public nonisolated func screen(
+        imageDataList: [Data],
+        probabilityThreshold: Float = 0.85,
+        enableLogging: Bool = false
+    ) async throws -> SCSOverallScreeningResults {
+        // 各画像のスクリーニングを直列で実行
+        var results: [SCSIndividualScreeningResult] = []
+        for (index, imageData) in imageDataList.enumerated() {
+            let confidences = try await screenSingleImage(
+                imageData,
+                probabilityThreshold: probabilityThreshold,
+                enableLogging: enableLogging
+            )
+            results.append(SCSIndividualScreeningResult(
+                imageData: imageData,
+                confidences: confidences,
+                probabilityThreshold: probabilityThreshold,
+                originalIndex: index
+            ))
+        }
+
+        let overallResults = SCSOverallScreeningResults(results: results)
+
+        if enableLogging {
+            print(overallResults.generateDetailedReport())
+        }
+
+        return overallResults
+    }
+
+    // MARK: - Private API
+
+    private nonisolated func screenSingleImage(
+        _ imageData: Data,
+        probabilityThreshold _: Float,
+        enableLogging: Bool
+    ) async throws -> [String: Float] {
+        var confidences: [String: Float] = [:]
+
+        try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedFeature]?).self) { group in
+            for container in await self.ovrModels {
+                group.addTask {
+                    do {
+                        let handler = VNImageRequestHandler(data: imageData, options: [:])
+                        try handler.perform([container.request])
+                        guard let observations = container.request.results as? [VNClassificationObservation] else {
+                            if enableLogging {
+                                print("[ScaryCatScreener] [Warning] モデル\(container.modelFileName)の結果が不正な形式")
+                            }
+                            return (container.modelFileName, nil)
+                        }
+                        let mappedObservations = observations.map { (
+                            featureName: $0.identifier,
+                            confidence: $0.confidence
+                        ) }
+                        return (container.modelFileName, mappedObservations)
+                    } catch {
+                        if enableLogging {
+                            print(
+                                "[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)"
+                            )
+                        }
+                        throw ScaryCatScreenerError.predictionFailed(originalError: error)
+                    }
+                }
+            }
+
+            for try await result in group {
+                guard let mappedObservations = result.observations else { continue }
+
+                // すべての検出結果を収集
+                for observation in mappedObservations where observation.featureName != "Rest" {
+                    confidences[observation.featureName] = observation.confidence
+                }
+            }
+        }
+
+        return confidences
+    }
+
     /// リソースディレクトリ内の.mlmodelcファイルを検索
     private func findModelFiles(in resourceURL: URL) async throws -> [URL] {
         let fileManager = FileManager.default
@@ -105,7 +187,6 @@ public actor ScaryCatScreener {
                 }
             }
 
-            // 完了したタスクの結果を収集
             for try await container in group {
                 collectedContainers.append(container)
             }
@@ -120,24 +201,24 @@ public actor ScaryCatScreener {
         let config = MLModelConfiguration()
         config.computeUnits = .all
 
-        // モデルのロードと設定
+        // モデルのロード
         let mlModel = try MLModel(contentsOf: url, configuration: config)
         let visionModel = try VNCoreMLModel(for: mlModel)
 
         // Visionリクエストの設定
         let request = VNCoreMLRequest(model: visionModel)
         #if targetEnvironment(simulator)
-        if #available(iOS 17.0, *) {
-            let allDevices = MLComputeDevice.allComputeDevices
-            for device in allDevices {
-                if device.description.contains("MLCPUComputeDevice") {
-                    request.setComputeDevice(.some(device), for: .main)
-                    break
+            if #available(iOS 17.0, *) {
+                let allDevices = MLComputeDevice.allComputeDevices
+                for device in allDevices {
+                    if device.description.contains("MLCPUComputeDevice") {
+                        request.setComputeDevice(.some(device), for: .main)
+                        break
+                    }
                 }
+            } else {
+                request.usesCPUOnly = true
             }
-        } else {
-            request.usesCPUOnly = true
-        }
         #endif
         request.imageCropAndScaleOption = .scaleFit
 
@@ -146,85 +227,5 @@ public actor ScaryCatScreener {
             modelFileName: url.deletingPathExtension().lastPathComponent,
             request: request
         )
-    }
-
-    // MARK: - Public Screening API
-
-    private func screenSingleImage(
-        _ imageData: Data,
-        probabilityThreshold _: Float,
-        enableLogging: Bool
-    ) async throws -> [String: Float] {
-        var confidences: [String: Float] = [:]
-
-        try await withThrowingTaskGroup(of: (modelId: String, observations: [DetectedFeature]?).self) { group in
-            for container in self.ovrModels {
-                group.addTask {
-                    do {
-                        let handler = VNImageRequestHandler(data: imageData, options: [:])
-                        try handler.perform([container.request])
-                        guard let observations = container.request.results as? [VNClassificationObservation] else {
-                            if enableLogging {
-                                print("[ScaryCatScreener] [Warning] モデル\(container.modelFileName)の結果が不正な形式")
-                            }
-                            return (container.modelFileName, nil)
-                        }
-                        let mappedObservations = observations.map { (
-                            featureName: $0.identifier,
-                            confidence: $0.confidence
-                        ) }
-                        return (container.modelFileName, mappedObservations)
-                    } catch {
-                        if enableLogging {
-                            print(
-                                "[ScaryCatScreener] [Error] モデル \(container.modelFileName) のVisionリクエスト失敗: \(error.localizedDescription)"
-                            )
-                        }
-                        throw ScaryCatScreenerError.predictionFailed(originalError: error)
-                    }
-                }
-            }
-
-            for try await result in group {
-                guard let mappedObservations = result.observations else { continue }
-
-                // すべての検出結果を収集
-                for observation in mappedObservations where observation.featureName != "Rest" {
-                    confidences[observation.featureName] = observation.confidence
-                }
-            }
-        }
-
-        return confidences
-    }
-
-    public func screen(
-        imageDataList: [Data],
-        probabilityThreshold: Float = 0.85,
-        enableLogging: Bool = false
-    ) async throws -> SCSOverallScreeningResults {
-        // 各画像のスクリーニングを直列で実行
-        var results: [SCSIndividualScreeningResult] = []
-        for (index, imageData) in imageDataList.enumerated() {
-            let confidences = try await screenSingleImage(
-                imageData,
-                probabilityThreshold: probabilityThreshold,
-                enableLogging: enableLogging
-            )
-            results.append(SCSIndividualScreeningResult(
-                imageData: imageData,
-                confidences: confidences,
-                probabilityThreshold: probabilityThreshold,
-                originalIndex: index
-            ))
-        }
-
-        let overallResults = SCSOverallScreeningResults(results: results)
-
-        if enableLogging {
-            print(overallResults.generateDetailedReport())
-        }
-
-        return overallResults
     }
 }

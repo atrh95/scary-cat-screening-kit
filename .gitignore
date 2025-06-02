@@ -16,6 +16,10 @@ UserInterfaceState.xcuserstate
 *.swp
 *.lock
 
+# macOS system files
+.DS_Store
+**/.DS_Store
+
 # Cursor editor settings
 .cursor/
 

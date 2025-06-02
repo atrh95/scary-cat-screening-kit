@@ -11,7 +11,7 @@ struct CatImageResponse: Decodable, Identifiable {
 }
 
 @MainActor
-class ScreeningViewModel: ObservableObject {
+final class ScreeningViewModel: ObservableObject {
     private let enableLogging = true
     public let probabilityThreshold: Float = 0.85
 

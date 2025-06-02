@@ -33,7 +33,7 @@ final class ScaryCatScreenerTests: XCTestCase {
         } else {
             do {
                 let newScreener = try await ScaryCatScreener(enableLogging: enableLogging)
-                self.screener = newScreener
+                screener = newScreener
                 return newScreener
             } catch let error as NSError {
                 print("ScaryCatScreener の初期化に失敗しました: \(error.localizedDescription)")
