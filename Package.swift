@@ -22,10 +22,11 @@ let package = Package(
             path: "Sources",
             exclude: ["Info.plist"],
             resources: [
-                .copy("OvRModels/ScaryCatScreeningML_OvR_black_and_white_v28.mlmodelc"),
-                .copy("OvRModels/ScaryCatScreeningML_OvR_human_hands_detected_v28.mlmodelc"),
-                .copy("OvRModels/ScaryCatScreeningML_OvR_mouth_open_v27.mlmodelc"),
-                .copy("OvRModels/ScaryCatScreeningML_OvR_sphynx_v27.mlmodelc"),
+                .copy("OvRModels/ScaryCatScreeningML_OvR_black_and_white_v30.mlmodelc"),
+                .copy("OvRModels/ScaryCatScreeningML_OvR_human_hands_detected_v30.mlmodelc"),
+                .copy("OvRModels/ScaryCatScreeningML_OvR_mouth_open_v32.mlmodelc"),
+                .copy("OvRModels/ScaryCatScreeningML_OvR_sphynx_v30.mlmodelc"),
+                .copy("OvOModels/ScaryCatScreeningML_OvO_mouth_open_vs_safe_v1.mlmodelc"),
             ]
         ),
         // ,
