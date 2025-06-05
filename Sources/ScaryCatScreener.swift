@@ -61,7 +61,7 @@ public final actor ScaryCatScreener {
 
     public nonisolated func screen(
         imageDataList: [Data],
-        probabilityThreshold: Float = 0.85,
+        probabilityThreshold: Float = 0.98,
         enableLogging: Bool = false
     ) async throws -> SCSOverallScreeningResults {
         // 各画像のスクリーニングを直列で実行
@@ -93,7 +93,7 @@ public final actor ScaryCatScreener {
 
     private nonisolated func screenSingleImage(
         _ imageData: Data,
-        probabilityThreshold _: Float,
+        probabilityThreshold: Float,
         enableLogging: Bool
     ) async throws -> [String: Float] {
         var confidences: [String: Float] = [:]
@@ -111,7 +111,7 @@ public final actor ScaryCatScreener {
                 }
 
                 // 検出結果を収集
-                for observation in observations where observation.identifier.lowercased() != "rest" {
+                for observation in observations where observation.identifier.lowercased() != "rest" && observation.identifier.lowercased() != "safe" {
                     confidences[observation.identifier] = observation.confidence
                 }
             } catch {
@@ -121,6 +121,31 @@ public final actor ScaryCatScreener {
                     )
                 }
                 throw ScaryCatScreenerError.predictionFailed(originalError: error)
+            }
+        }
+
+        // mouth_openのみが検出された場合の特別処理
+        if let mouthOpenConfidence = confidences["mouth_open"], confidences.count == 1 {
+            // OvOモデルを探す
+            if let ovoContainer = await ovrModels.first(where: { $0.modelFileName.contains("OvO_mouth_open_vs_safe") }) {
+                do {
+                    let handler = VNImageRequestHandler(data: imageData, options: [:])
+                    try handler.perform([ovoContainer.request])
+                    if let observations = ovoContainer.request.results as? [VNClassificationObservation],
+                       let safeObservation = observations.first(where: { $0.identifier.lowercased() == "safe" }) {
+                        // safeと判定された場合、mouth_openの信頼度を0に設定
+                        if safeObservation.confidence >= probabilityThreshold {
+                            confidences["mouth_open"] = 0
+                            if enableLogging {
+                                print("[ScaryCatScreener] [Info] OvOモデルによりsafeと判定され、mouth_openの信頼度を0に設定")
+                            }
+                        }
+                    }
+                } catch {
+                    if enableLogging {
+                        print("[ScaryCatScreener] [Warning] OvOモデルの検証に失敗: \(error.localizedDescription)")
+                    }
+                }
             }
         }
 

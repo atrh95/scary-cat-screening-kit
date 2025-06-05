@@ -62,11 +62,15 @@ do {
 **パラメータ:**
 
 -   `imageDataList`: `[Data]` - スクリーニング対象の画像データの配列。
--   `probabilityThreshold`: `Float` (デフォルト: `0.85`)
+-   `probabilityThreshold`: `Float` (デフォルト: `0.98`)
     -   この値は `0.0` から `1.0` の範囲で指定します。
     -   いずれかのモデルが画像を「安全でない」カテゴリに属すると判定した際の信頼度 (confidence) が、この閾値以上の場合、その画像は総合的に「安全でない」と見なされます。
 -   `enableLogging`: `Bool` (デフォルト: `false`)
     -   `true` を指定すると、内部処理に関する詳細ログ（各画像のスクリーニングレポートなど）がコンソールに出力されます。
+
+**注意点:**
+- "rest"と"safe"は安全と考慮する要素として扱われ、信頼度の収集から除外されます。
+- mouth_openのみが検出された場合、OvOモデル（ScaryCatScreeningML_OvO_mouth_open_vs_safe_v1.mlmodelc）による追加の検証が行われます。
 
 ```swift
 let imageDataList: [Data] = [/* ... スクリーニングしたい画像データの配列 ... */] 
@@ -74,10 +78,10 @@ let imageDataList: [Data] = [/* ... スクリーニングしたい画像デー�
 Task {
     do {
         // `screener` は上記で初期化済みの ScaryCatScreener インスタンス
-        // 信頼度が85%以上のものを「安全でない」カテゴリの判定基準とし、ログ出力を有効にする例
+        // 信頼度が98%以上のものを「安全でない」カテゴリの判定基準とし、ログ出力を有効にする例
         let screeningResults = try await screener.screen(
             imageDataList: imageDataList, 
-            probabilityThreshold: 0.85, 
+            probabilityThreshold: 0.98, 
             enableLogging: true
         )
         

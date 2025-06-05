@@ -13,7 +13,7 @@ struct CatImageResponse: Decodable, Identifiable {
 @MainActor
 final class ScreeningViewModel: ObservableObject {
     private let enableLogging = true
-    public let probabilityThreshold: Float = 0.85
+    public let probabilityThreshold: Float = 0.98
 
     @Published private(set) var fetchedImages: [(url: URL, image: UIImage)] = []
     @Published private(set) var safeResults: [SCSIndividualScreeningResult] = []
