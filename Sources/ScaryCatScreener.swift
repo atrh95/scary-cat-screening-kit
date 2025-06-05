@@ -93,7 +93,7 @@ public final actor ScaryCatScreener {
 
     private nonisolated func screenSingleImage(
         _ imageData: Data,
-        probabilityThreshold: Float,
+        probabilityThreshold _: Float,
         enableLogging: Bool
     ) async throws -> [String: Float] {
         var confidences: [String: Float] = [:]
@@ -111,7 +111,10 @@ public final actor ScaryCatScreener {
                 }
 
                 // 検出結果を収集
-                for observation in observations where observation.identifier.lowercased() != "rest" && observation.identifier.lowercased() != "safe" {
+                for observation in observations
+                    where observation.identifier.lowercased() != "rest" && observation.identifier
+                    .lowercased() != "safe"
+                {
                     confidences[observation.identifier] = observation.confidence
                 }
             } catch {
@@ -126,30 +129,46 @@ public final actor ScaryCatScreener {
 
         // mouth_openのみが検出された場合の特別処理
         if let mouthOpenConfidence = confidences["mouth_open"], confidences.count == 1 {
-            // OvOモデルを探す
-            if let ovoContainer = await ovrModels.first(where: { $0.modelFileName.contains("OvO_mouth_open_vs_safe") }) {
-                do {
-                    let handler = VNImageRequestHandler(data: imageData, options: [:])
-                    try handler.perform([ovoContainer.request])
-                    if let observations = ovoContainer.request.results as? [VNClassificationObservation],
-                       let safeObservation = observations.first(where: { $0.identifier.lowercased() == "safe" }) {
-                        // safeと判定された場合、mouth_openの信頼度を0に設定
-                        if safeObservation.confidence >= probabilityThreshold {
-                            confidences["mouth_open"] = 0
-                            if enableLogging {
-                                print("[ScaryCatScreener] [Info] OvOモデルによりsafeと判定され、mouth_openの信頼度を0に設定")
-                            }
-                        }
-                    }
-                } catch {
-                    if enableLogging {
-                        print("[ScaryCatScreener] [Warning] OvOモデルの検証に失敗: \(error.localizedDescription)")
-                    }
-                }
-            }
+            await resolveMouthOpenWithOvOModel(
+                confidences: &confidences,
+                imageData: imageData,
+                enableLogging: enableLogging
+            )
         }
 
         return confidences
+    }
+
+    /// mouth_openのみ検出された場合、OvOモデルでsafe判定を再確認し、必要ならmouth_openの信頼度を0にする
+    private func resolveMouthOpenWithOvOModel(
+        confidences: inout [String: Float],
+        imageData: Data,
+        enableLogging: Bool
+    ) async {
+        // OvOモデルを探す
+        if let ovoContainer = await ovrModels.first(where: { $0.modelFileName.contains("OvO_mouth_open_vs_safe") }) {
+            do {
+                let handler = VNImageRequestHandler(data: imageData, options: [:])
+                try handler.perform([ovoContainer.request])
+                if let observations = ovoContainer.request.results as? [VNClassificationObservation],
+                   let safeObservation = observations.first(where: { $0.identifier.lowercased() == "safe" }),
+                   let mouthOpenObservation = observations
+                   .first(where: { $0.identifier.lowercased() == "mouth_open" })
+                {
+                    // 信頼度の高い方のクラスを採用
+                    if safeObservation.confidence > mouthOpenObservation.confidence {
+                        confidences["mouth_open"] = 0
+                        if enableLogging {
+                            print("[ScaryCatScreener] [Info] OvOモデルによりsafeと判定され、mouth_openの信頼度を0に設定")
+                        }
+                    }
+                }
+            } catch {
+                if enableLogging {
+                    print("[ScaryCatScreener] [Warning] OvOモデルの検証に失敗: \(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     /// リソースディレクトリ内の.mlmodelcファイルを検索
