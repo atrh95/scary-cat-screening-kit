@@ -4,6 +4,12 @@
 
 ScaryCatScreeningKitは、One-vs-Restアプローチを採用した機械学習モデルを使用して猫の画像のスクリーニングを行う機能を提供します。
 
+## 必要条件
+
+- Swift 5.9以上
+- iOS 17.0以上
+- macOS 14.0以上
+
 ## 設計
 
 *   **`ScaryCatScreener.swift`**: MLModelを読み込み、One-vs-Rest分類ロジックを用いた画像分類を行います。
@@ -25,7 +31,7 @@ ScaryCatScreeningKitは、One-vs-Restアプローチを採用した機械学習�
 └── README.md
 ```
 
-`SampleApp`の動作確認は、シミュレータではなくiPhone 16などの実機で行うことを推奨します。シミュレータ環境ではNeural Engineなどの計算ユニットが使用できないため、スクリーニングの精度と速度が低下します。
+`SampleApp`の動作確認は、シミュレータではなくiPhone 16等の実機で行うことを推奨します。シミュレータ環境ではNeural Engineなどの計算ユニットが使用できないため、スクリーニングの精度が低下します。
 
 ### 利用方法
 
